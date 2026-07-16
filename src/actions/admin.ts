@@ -61,16 +61,23 @@ export async function createAdminAccount(input: {
     return { ok: false, error: "此聯絡電話已被使用，請更換。" };
   }
 
-  const { data: signUpData, error } = await auth.signUp.email({
+  // Use the admin plugin's createUser (not signUp.email) — signUp would swap
+  // the *calling* SiteAdmin's own browser session over to the newly created
+  // account, since it's designed for self-registration, not admin-provisioning.
+  const { data: createData, error } = await auth.admin.createUser({
     email: data.email,
     password: data.password,
     name: data.name,
+    // Better Auth's own admin plugin checks this role (separate from our
+    // schools.role column) before letting a user call admin.createUser —
+    // without it, admins we create here couldn't create further admins.
+    role: "admin",
   });
   if (error) {
     return { ok: false, error: `建立帳號失敗：${error.message ?? "請稍後再試"}` };
   }
 
-  const userId = signUpData?.user?.id ?? (await auth.getSession()).data?.user?.id;
+  const userId = createData?.user?.id;
   if (!userId) {
     return { ok: false, error: "帳號已建立，但管理員資料儲存失敗，請聯絡開發人員。" };
   }
