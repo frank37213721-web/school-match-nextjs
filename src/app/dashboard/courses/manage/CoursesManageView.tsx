@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { BookMarked, ChevronDown, ChevronRight, Check, Plus, SquarePen, Trash2, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { CourseForm } from "@/components/courses/CourseForm";
@@ -16,17 +17,28 @@ export function CoursesManageView({ courses }: { courses: CourseRow[] }) {
   return (
     <Tabs defaultValue="add" className="w-full">
       <TabsList>
-        <TabsTrigger value="add">➕ 新增課程</TabsTrigger>
-        <TabsTrigger value="edit">✏️ 修改／刪除課程</TabsTrigger>
+        <TabsTrigger value="add" className="gap-1.5">
+          <Plus className="size-3.5" />
+          新增課程
+        </TabsTrigger>
+        <TabsTrigger value="edit" className="gap-1.5">
+          <SquarePen className="size-3.5" />
+          修改／刪除課程
+        </TabsTrigger>
       </TabsList>
 
       <TabsContent value="add" className="pt-4">
-        <CourseForm submitLabel="確認新增課程" onSubmit={createCourse} onSuccess={() => router.refresh()} />
+        <div className="card-shadow max-w-2xl rounded-lg border border-border bg-card p-8">
+          <CourseForm submitLabel="確認新增課程" onSubmit={createCourse} onSuccess={() => router.refresh()} />
+        </div>
       </TabsContent>
 
       <TabsContent value="edit" className="flex flex-col gap-3 pt-4">
         {courses.length === 0 ? (
-          <p className="text-sm text-muted-foreground">您目前尚無開設任何課程。</p>
+          <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border py-12 text-center">
+            <BookMarked className="size-8 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">您目前尚無開設任何課程。</p>
+          </div>
         ) : (
           courses.map((c) => <CourseEditRow key={c.id} course={c} onChanged={() => router.refresh()} />)
         )}
@@ -56,12 +68,23 @@ function CourseEditRow({ course, onChanged }: { course: CourseRow; onChanged: ()
   }
 
   return (
-    <details className="border border-border p-3" open={expanded} onToggle={(e) => setExpanded(e.currentTarget.open)}>
-      <summary className="cursor-pointer text-sm">📖 {course.title}</summary>
+    <details
+      className="card-shadow max-w-2xl overflow-hidden rounded-lg border border-border bg-card open:pb-6"
+      open={expanded}
+      onToggle={(e) => setExpanded(e.currentTarget.open)}
+    >
+      <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-4 text-sm font-medium text-foreground transition-colors hover:bg-muted [&::-webkit-details-marker]:hidden">
+        {expanded ? (
+          <ChevronDown className="size-4 text-muted-foreground" />
+        ) : (
+          <ChevronRight className="size-4 text-muted-foreground" />
+        )}
+        {course.title}
+      </summary>
 
-      <div className="mt-4 flex flex-col gap-4">
+      <div className="flex flex-col gap-4 px-5">
         <CourseForm
-          submitLabel="💾 儲存修改"
+          submitLabel="儲存修改"
           initial={{
             title: course.title,
             courseType: course.courseType,
@@ -100,12 +123,14 @@ function CourseEditRow({ course, onChanged }: { course: CourseRow; onChanged: ()
 
         {confirmingDelete ? (
           <div className="flex items-center gap-2">
-            <p className="text-sm text-status-partial">⚠️ 確定要刪除此課程？此操作無法復原。</p>
+            <p className="text-sm text-status-partial">確定要刪除此課程？此操作無法復原。</p>
             <Button size="sm" variant="destructive" onClick={handleDelete} disabled={pending}>
-              {pending ? "刪除中…" : "✅ 確認刪除"}
+              <Check className="size-4" />
+              {pending ? "刪除中…" : "確認刪除"}
             </Button>
             <Button size="sm" variant="secondary" onClick={() => setConfirmingDelete(false)}>
-              ❌ 取消
+              <X className="size-4" />
+              取消
             </Button>
           </div>
         ) : (
@@ -118,7 +143,8 @@ function CourseEditRow({ course, onChanged }: { course: CourseRow; onChanged: ()
               setConfirmingDelete(true);
             }}
           >
-            🗑️ 刪除此課程
+            <Trash2 className="size-4" />
+            刪除此課程
           </Button>
         )}
       </div>

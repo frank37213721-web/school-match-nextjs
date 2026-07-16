@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { KeyRound, SendHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,7 +28,10 @@ export function ForgotPasswordSection() {
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm font-medium">🔐 忘記密碼</p>
+      <p className="flex items-center gap-1.5 text-sm font-medium">
+        <KeyRound className="size-4 text-muted-foreground" />
+        忘記密碼
+      </p>
       <p className="text-sm text-muted-foreground">如果您忘記密碼，可以輸入學校帳號寄送重設密碼連結。</p>
 
       <form onSubmit={handleSubmit} className="flex max-w-sm flex-col gap-3">
@@ -37,7 +41,8 @@ export function ForgotPasswordSection() {
         </div>
         {message && <p className="text-sm text-muted-foreground">{message}</p>}
         <Button type="submit" variant="secondary" disabled={pending}>
-          {pending ? "處理中…" : "🔄 寄送重設連結"}
+          <SendHorizontal className="size-4" />
+          {pending ? "處理中…" : "寄送重設連結"}
         </Button>
       </form>
     </div>

@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Check, Inbox, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { approveMatch, rejectMatch } from "@/actions/matches";
 
@@ -17,7 +18,12 @@ export function IncomingMatchesTab({ matches }: { matches: IncomingMatch[] }) {
   const router = useRouter();
 
   if (matches.length === 0) {
-    return <p className="text-sm text-muted-foreground">目前尚無收到申請。</p>;
+    return (
+      <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border py-12 text-center">
+        <Inbox className="size-8 text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">目前尚無收到申請。</p>
+      </div>
+    );
   }
 
   return (
@@ -49,12 +55,20 @@ function MatchRow({ match, onChanged }: { match: IncomingMatch; onChanged: () =>
   const dateStr = new Date(match.updatedAt).toLocaleString("zh-TW");
 
   return (
-    <div className="rounded-lg border border-border p-4">
+    <div className="rounded-lg border border-border bg-card p-4">
       <p className="text-sm">
         <span className="font-medium">{match.partnerSchoolName}</span> 申請了「{match.courseTitle}」
-        {match.status === "pending" && <span className="ml-2 text-status-partial">⏳ 待審核</span>}
+        {match.status === "pending" && (
+          <span className="ml-2 inline-flex items-center gap-1.5 text-status-partial">
+            <span className="size-1.5 rounded-full bg-status-partial" />
+            待審核
+          </span>
+        )}
         {match.status === "approved" && (
-          <span className="ml-2 text-status-open">✅ 您已於 {dateStr} 答應對方的申請</span>
+          <span className="ml-2 inline-flex items-center gap-1.5 text-status-open">
+            <span className="size-1.5 rounded-full bg-status-open" />
+            您已於 {dateStr} 答應對方的申請
+          </span>
         )}
         {match.status === "rejected" && (
           <span className="ml-2 text-muted-foreground">您已於 {dateStr} 婉拒該校的申請</span>
@@ -63,10 +77,12 @@ function MatchRow({ match, onChanged }: { match: IncomingMatch; onChanged: () =>
       {match.status === "pending" && (
         <div className="mt-3 flex gap-2">
           <Button size="sm" onClick={handleApprove} disabled={pending}>
-            ✅ 確認正式合作
+            <Check className="size-4" />
+            確認正式合作
           </Button>
           <Button size="sm" variant="secondary" onClick={handleReject} disabled={pending}>
-            🙏 婉拒
+            <X className="size-4" />
+            婉拒
           </Button>
         </div>
       )}

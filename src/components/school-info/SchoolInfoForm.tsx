@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -138,7 +139,8 @@ export function SchoolInfoForm({ school }: { school: CurrentSchool }) {
           </p>
         )}
         <Button type="submit" disabled={profilePending}>
-          {profilePending ? "儲存中…" : "💾 儲存所有變更"}
+          <Save className="size-4" />
+          {profilePending ? "儲存中…" : "儲存所有變更"}
         </Button>
       </form>
 

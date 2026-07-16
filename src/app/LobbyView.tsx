@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { BookOpen, Inbox } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Hero } from "@/components/lobby/Hero";
 import { CourseCard } from "@/components/lobby/CourseCard";
@@ -79,7 +80,10 @@ export function LobbyView({
     <div>
       {topBar}
       <div className="mx-auto max-w-4xl px-6 py-10">
-        <h1 className="mb-6 text-xl font-medium tracking-wide">📚 課程大廳</h1>
+        <h1 className="mb-6 flex items-center gap-2 page-heading">
+          <BookOpen className="size-6 text-primary" />
+          課程大廳
+        </h1>
 
         <CourseFilterBar
           search={search}
@@ -97,7 +101,10 @@ export function LobbyView({
         />
 
         {filtered.length === 0 ? (
-          <p className="text-sm text-muted-foreground">目前沒有符合條件的課程。</p>
+          <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border py-16 text-center">
+            <Inbox className="size-8 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">目前沒有符合條件的課程，試試調整篩選條件。</p>
+          </div>
         ) : (
           <>
             <p className="mb-4 text-sm text-muted-foreground">

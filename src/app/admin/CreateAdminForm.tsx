@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -77,7 +78,14 @@ export function CreateAdminForm() {
         </p>
       )}
       <Button type="submit" disabled={pending}>
-        {pending ? "建立中…" : "創建管理帳號"}
+        {pending ? (
+          "建立中…"
+        ) : (
+          <>
+            <UserPlus className="size-4" />
+            創建管理帳號
+          </>
+        )}
       </Button>
     </form>
   );

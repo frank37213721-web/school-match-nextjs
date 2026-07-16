@@ -42,56 +42,57 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+  --radius-sm: calc(var(--radius) * 0.45);
+  --radius-md: calc(var(--radius) * 0.65);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-xl: calc(var(--radius) * 1.3);
+  --radius-2xl: calc(var(--radius) * 1.65);
+  --radius-3xl: calc(var(--radius) * 2);
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
 :root {
-  /* Navy/blue-gray palette ported 1:1 from the old Streamlit app's styles.py + lobby.py */
-  --background: #edf1f9;
-  --page-gradient: linear-gradient(160deg, #eef2fa, #e8eef8, #edf1f9);
-  --sidebar-gradient: linear-gradient(180deg, #dce6f5, #d0dcf0);
-  --hero-gradient: linear-gradient(160deg, #10141f, #172035, #10141f);
-  --foreground: #1a2340;
+  /* Notion-inspired editorial system: purple primary CTA, deep navy hero,
+     white canvas cards on a neutral surface, hairline borders. */
+  --background: #f7f7fb;
+  --page-gradient: linear-gradient(180deg, #ffffff 0%, #f7f7fb 420px);
+  --sidebar-gradient: none;
+  --hero-gradient: linear-gradient(160deg, #070f24 0%, #0a1530 50%, #1a2a52 100%);
+  --foreground: #16192a;
   --card: #ffffff;
-  --card-foreground: #1a2340;
+  --card-foreground: #16192a;
   --popover: #ffffff;
-  --popover-foreground: #1a2340;
-  --primary: #2563a8;
+  --popover-foreground: #16192a;
+  --primary: #5645d4;
   --primary-foreground: #ffffff;
-  --primary-hover: #1e50a0;
-  --secondary: #dce8f8;
-  --secondary-foreground: #1a3060;
-  --muted: #eef2fa;
-  --muted-foreground: #4a6a9a;
-  --accent: #dce6f5;
-  --accent-foreground: #1a2340;
-  --destructive: #c0392b;
-  --border: #b0c4e0;
-  --input: #b0c4e0;
-  --ring: #2563a8;
-  --chart-1: #2563a8;
-  --chart-2: #4a6a9a;
-  --chart-3: #7e9fc9;
-  --chart-4: #a0b8d8;
-  --chart-5: #c4d4ec;
-  --status-full: #c0392b;
-  --status-partial: #b07800;
-  --status-open: #1a7a40;
+  --primary-hover: #4534b3;
+  --secondary: #eeecfb;
+  --secondary-foreground: #3a2a99;
+  --muted: #f2f2f6;
+  --muted-foreground: #66697a;
+  --accent: #eeecfb;
+  --accent-foreground: #3a2a99;
+  --destructive: #e03131;
+  --border: #e3e3ea;
+  --input: #dcdce6;
+  --ring: #5645d4;
+  --chart-1: #5645d4;
+  --chart-2: #0075de;
+  --chart-3: #2a9d99;
+  --chart-4: #dd5b00;
+  --chart-5: #a4a097;
+  --status-full: #e03131;
+  --status-partial: #dd5b00;
+  --status-open: #1aae39;
   --radius: 0.75rem;
-  --sidebar: #dce6f5;
-  --sidebar-foreground: #1a3060;
-  --sidebar-primary: #2563a8;
+  --sidebar: #fafaf9;
+  --sidebar-foreground: #16192a;
+  --sidebar-primary: #5645d4;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #c4d4ec;
-  --sidebar-accent-foreground: #1a2340;
-  --sidebar-border: #b0c4e0;
-  --sidebar-ring: #2563a8;
+  --sidebar-accent: #eeecfb;
+  --sidebar-accent-foreground: #3a2a99;
+  --sidebar-border: #e3e3ea;
+  --sidebar-ring: #5645d4;
 }
 
 @layer base {
@@ -106,6 +107,7 @@
   body {
     @apply text-foreground;
     background: var(--page-gradient);
+    background-repeat: no-repeat;
     min-height: 100vh;
   }
   html {
@@ -118,36 +120,42 @@
     background: var(--hero-gradient);
   }
 
+  /* Elevation scale, adapted from Notion's card-shadow tiers. */
+  .shadow-elevation-1 {
+    box-shadow: 0 1px 2px rgba(15, 15, 15, 0.04);
+  }
   .card-shadow {
     box-shadow:
-      0 4px 20px rgba(30, 50, 120, 0.11),
-      0 1px 4px rgba(30, 50, 120, 0.06);
+      0 1px 2px rgba(15, 15, 15, 0.04),
+      0 4px 12px rgba(15, 15, 15, 0.06);
+  }
+  .shadow-elevation-3 {
+    box-shadow: 0 24px 48px -8px rgba(15, 15, 15, 0.18);
   }
 
-  /* Course-type badge colors, exact hex triples from the old lobby.py */
+  .page-heading {
+    @apply text-2xl font-semibold tracking-tight text-foreground;
+  }
+
+  /* Course-type tag chips — soft pastel tints, Notion database-property style. */
   .badge-course-部定必修 {
-    background-color: #dbeafe;
-    color: #1d4ed8;
-    border-color: #2563eb;
+    background-color: #dcecfa;
+    color: #0a5c9e;
   }
   .badge-course-加深加廣選修 {
-    background-color: #dcfce7;
+    background-color: #d9f3e1;
     color: #15803d;
-    border-color: #16a34a;
   }
   .badge-course-校訂必修 {
-    background-color: #fef9c3;
-    color: #a16207;
-    border-color: #ca8a04;
+    background-color: #fef7d6;
+    color: #92660a;
   }
   .badge-course-多元選修 {
-    background-color: #ffe4e6;
-    color: #be123c;
-    border-color: #e11d48;
+    background-color: #fde0ec;
+    color: #a02e6d;
   }
   .badge-course-彈性課程 {
-    background-color: #f3e8ff;
-    color: #7e22ce;
-    border-color: #9333ea;
+    background-color: #e6e0f5;
+    color: #5b3fa0;
   }
 }

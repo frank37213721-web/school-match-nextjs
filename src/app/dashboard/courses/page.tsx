@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { BookOpen, PencilLine } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -6,6 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { buttonVariants } from "@/components/ui/button";
 import { getCoursesForSchool } from "@/db/queries/courses";
 import { requireUser } from "@/lib/auth";
 
@@ -15,11 +18,21 @@ export default async function MyCoursesPage() {
 
   return (
     <div>
-      <h1 className="mb-1 text-xl font-medium tracking-wide">📚 本校開課課程</h1>
+      <h1 className="mb-1 flex items-center gap-2 page-heading">
+        <BookOpen className="size-6 text-primary" />
+        本校開課課程
+      </h1>
       <p className="mb-6 text-sm text-muted-foreground">單位：{school.name}</p>
 
       {courses.length === 0 ? (
-        <p className="text-sm text-muted-foreground">您目前尚未開設任何課程。</p>
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border py-16 text-center">
+          <BookOpen className="size-8 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">您目前尚未開設任何課程。</p>
+          <Link href="/dashboard/courses/manage" className={buttonVariants({ size: "sm" })}>
+            <PencilLine className="size-4" />
+            前往新增課程
+          </Link>
+        </div>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-border">
           <Table>

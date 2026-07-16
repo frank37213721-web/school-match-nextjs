@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { CalendarClock, FileText, ListChecks, Save, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -138,7 +139,10 @@ export function CourseForm({
       </div>
 
       <div>
-        <p className="mb-2 text-sm font-medium">🗓️ 開課時間</p>
+        <p className="mb-2 flex items-center gap-1.5 text-sm font-medium">
+          <CalendarClock className="size-4 text-muted-foreground" />
+          開課時間
+        </p>
         <div className="grid grid-cols-3 gap-3">
           <div>
             <Label className="mb-2 block">星期</Label>
@@ -200,7 +204,10 @@ export function CourseForm({
       </div>
 
       <div>
-        <p className="mb-2 text-sm font-medium">🎓 每校學生人數</p>
+        <p className="mb-2 flex items-center gap-1.5 text-sm font-medium">
+          <Users className="size-4 text-muted-foreground" />
+          每校學生人數
+        </p>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label className="mb-2 block">最少人數</Label>
@@ -222,8 +229,9 @@ export function CourseForm({
           className="block w-full text-sm file:mr-3 file:border file:border-input file:bg-secondary file:px-3 file:py-1.5"
         />
         {initial?.planPdfUrl && (
-          <p className="mt-1 text-sm">
-            📄 目前 PDF：
+          <p className="mt-1 flex items-center gap-1.5 text-sm">
+            <FileText className="size-3.5 text-muted-foreground" />
+            目前 PDF：
             <a href={initial.planPdfUrl} target="_blank" rel="noreferrer" className="text-primary underline">
               查看現有檔案
             </a>
@@ -238,7 +246,10 @@ export function CourseForm({
       </div>
 
       <div>
-        <p className="mb-2 text-sm font-medium">📋 合作要求</p>
+        <p className="mb-2 flex items-center gap-1.5 text-sm font-medium">
+          <ListChecks className="size-4 text-muted-foreground" />
+          合作要求
+        </p>
         <div className="flex flex-col gap-2">
           <Input name="req1" defaultValue={initial?.req1 ?? ""} placeholder="例：合作學校需自備視訊設備" />
           <Input name="req2" defaultValue={initial?.req2 ?? ""} placeholder="要求二" />
@@ -249,7 +260,14 @@ export function CourseForm({
       {error && <p className="whitespace-pre-line text-sm text-destructive">{error}</p>}
 
       <Button type="submit" disabled={pending}>
-        {pending ? "處理中…" : submitLabel}
+        {pending ? (
+          "處理中…"
+        ) : (
+          <>
+            <Save className="size-4" />
+            {submitLabel}
+          </>
+        )}
       </Button>
     </form>
   );

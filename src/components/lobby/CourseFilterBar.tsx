@@ -62,7 +62,7 @@ export function CourseFilterBar({
                 key={type}
                 type="button"
                 onClick={() => onToggleType(type)}
-                className={`badge-course-${type} rounded-md border px-2.5 py-1 text-xs transition-opacity ${
+                className={`badge-course-${type} cursor-pointer rounded-sm px-2.5 py-1 text-xs font-semibold transition-opacity ${
                   selectedTypes.size === 0 || selectedTypes.has(type) ? "opacity-100" : "opacity-30"
                 }`}
               >

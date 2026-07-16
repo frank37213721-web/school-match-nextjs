@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Check, Download, ListPlus, Pencil, Save, Trash2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -112,15 +113,15 @@ function RegistryDisplayRow({
   }
 
   return (
-    <div className="grid grid-cols-[80px_1fr_100px_auto_auto] items-center gap-3 py-2 text-sm">
+    <div className="grid grid-cols-[80px_1fr_100px_auto_auto] items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors hover:bg-muted">
       <span>{row.code ?? "—"}</span>
       <span>{row.name}</span>
       <span>{row.district ?? "—"}</span>
       <button onClick={onEdit} className="text-primary" aria-label="編輯">
-        ✏️
+        <Pencil className="size-4" />
       </button>
       <button onClick={handleDelete} disabled={pending} className="text-destructive" aria-label="刪除">
-        🗑️
+        <Trash2 className="size-4" />
       </button>
     </div>
   );
@@ -140,15 +141,15 @@ function RegistryEditRow({ row, onDone }: { row: RegistryEntry; onDone: () => vo
   }
 
   return (
-    <div className="grid grid-cols-[80px_1fr_100px_auto_auto] items-center gap-3 py-2">
+    <div className="grid grid-cols-[80px_1fr_100px_auto_auto] items-center gap-3 rounded-md bg-muted/40 px-2 py-2">
       <Input value={code} onChange={(e) => setCode(e.target.value)} className="h-7" />
       <Input value={name} onChange={(e) => setName(e.target.value)} className="h-7" />
       <Input value={district} onChange={(e) => setDistrict(e.target.value)} className="h-7" />
       <button onClick={handleSave} disabled={pending} className="text-primary" aria-label="儲存">
-        💾
+        <Save className="size-4" />
       </button>
       <button onClick={onDone} className="text-muted-foreground" aria-label="取消">
-        ✖
+        <X className="size-4" />
       </button>
     </div>
   );
@@ -167,9 +168,12 @@ function BulkImportSection({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <details className="border border-border p-3">
-      <summary className="cursor-pointer text-sm font-medium">▶️ 從內建學校代碼表批次匯入</summary>
-      <div className="mt-3 flex flex-col gap-2">
+    <details className="overflow-hidden rounded-lg border border-border bg-card">
+      <summary className="flex cursor-pointer list-none items-center gap-1.5 px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted [&::-webkit-details-marker]:hidden">
+        <ListPlus className="size-4 text-muted-foreground" />
+        從內建學校代碼表批次匯入
+      </summary>
+      <div className="flex flex-col gap-2 px-4 pb-4">
         <p className="text-sm text-muted-foreground">已存在的學校名稱不會重複匯入。</p>
         <Button className="w-fit" onClick={handleImport} disabled={pending}>
           {pending ? "匯入中…" : "開始匯入"}
@@ -184,7 +188,8 @@ function ExportSection() {
   return (
     <a href="/api/admin/registry/export">
       <Button variant="secondary" className="w-fit">
-        📥 下載目前學校清單（Excel）
+        <Download className="size-4" />
+        下載目前學校清單（Excel）
       </Button>
     </a>
   );
@@ -232,9 +237,12 @@ function ImportUploadSection({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <details className="border border-border p-3">
-      <summary className="cursor-pointer text-sm font-medium">選擇 Excel 檔案（.xlsx）上傳</summary>
-      <div className="mt-3 flex flex-col gap-3">
+    <details className="overflow-hidden rounded-lg border border-border bg-card">
+      <summary className="flex cursor-pointer list-none items-center gap-1.5 px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted [&::-webkit-details-marker]:hidden">
+        <Upload className="size-4 text-muted-foreground" />
+        選擇 Excel 檔案（.xlsx）上傳
+      </summary>
+      <div className="flex flex-col gap-3 px-4 pb-4">
         <input
           type="file"
           accept=".xlsx"
@@ -263,7 +271,8 @@ function ImportUploadSection({ onDone }: { onDone: () => void }) {
               </div>
             )}
             <Button className="w-fit" onClick={handleConfirm} disabled={pending}>
-              {pending ? "處理中…" : "✅ 確認匯入"}
+              <Check className="size-4" />
+              {pending ? "處理中…" : "確認匯入"}
             </Button>
           </div>
         )}

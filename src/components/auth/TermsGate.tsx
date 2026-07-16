@@ -28,9 +28,9 @@ export function TermsGate({
       <div
         ref={boxRef}
         onScroll={handleScroll}
-        className="h-80 overflow-y-scroll rounded-lg border border-border bg-white/85 p-5 text-[0.93rem] leading-7 text-foreground"
+        className="h-80 overflow-y-scroll rounded-lg border border-border bg-muted/40 p-5 text-[0.93rem] leading-7 text-foreground"
       >
-        <h4 className="mt-0 text-[#1a2a4a]">跨校課程串聯平台：註冊須知與約定事項</h4>
+        <h4 className="mt-0 font-semibold text-foreground">跨校課程串聯平台：註冊須知與約定事項</h4>
         <p>感謝您加入本平台。為確保校際合作之順暢，請於註冊前詳閱以下事項：</p>
 
         <p>
