@@ -1,26 +1,153 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-noto-sans-tc), var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --color-status-full: var(--status-full);
+  --color-status-partial: var(--status-partial);
+  --color-status-open: var(--status-open);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  /* Navy/blue-gray palette ported 1:1 from the old Streamlit app's styles.py + lobby.py */
+  --background: #edf1f9;
+  --page-gradient: linear-gradient(160deg, #eef2fa, #e8eef8, #edf1f9);
+  --sidebar-gradient: linear-gradient(180deg, #dce6f5, #d0dcf0);
+  --hero-gradient: linear-gradient(160deg, #10141f, #172035, #10141f);
+  --foreground: #1a2340;
+  --card: #ffffff;
+  --card-foreground: #1a2340;
+  --popover: #ffffff;
+  --popover-foreground: #1a2340;
+  --primary: #2563a8;
+  --primary-foreground: #ffffff;
+  --primary-hover: #1e50a0;
+  --secondary: #dce8f8;
+  --secondary-foreground: #1a3060;
+  --muted: #eef2fa;
+  --muted-foreground: #4a6a9a;
+  --accent: #dce6f5;
+  --accent-foreground: #1a2340;
+  --destructive: #c0392b;
+  --border: #b0c4e0;
+  --input: #b0c4e0;
+  --ring: #2563a8;
+  --chart-1: #2563a8;
+  --chart-2: #4a6a9a;
+  --chart-3: #7e9fc9;
+  --chart-4: #a0b8d8;
+  --chart-5: #c4d4ec;
+  --status-full: #c0392b;
+  --status-partial: #b07800;
+  --status-open: #1a7a40;
+  --radius: 0.75rem;
+  --sidebar: #dce6f5;
+  --sidebar-foreground: #1a3060;
+  --sidebar-primary: #2563a8;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #c4d4ec;
+  --sidebar-accent-foreground: #1a2340;
+  --sidebar-border: #b0c4e0;
+  --sidebar-ring: #2563a8;
+}
+
+@layer base {
+  :root,
+  html,
+  body {
+    color-scheme: light !important;
+  }
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply text-foreground;
+    background: var(--page-gradient);
+    min-height: 100vh;
+  }
+  html {
+    @apply font-sans;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  .hero-gradient {
+    background: var(--hero-gradient);
+  }
+
+  .card-shadow {
+    box-shadow:
+      0 4px 20px rgba(30, 50, 120, 0.11),
+      0 1px 4px rgba(30, 50, 120, 0.06);
+  }
+
+  /* Course-type badge colors, exact hex triples from the old lobby.py */
+  .badge-course-部定必修 {
+    background-color: #dbeafe;
+    color: #1d4ed8;
+    border-color: #2563eb;
+  }
+  .badge-course-加深加廣選修 {
+    background-color: #dcfce7;
+    color: #15803d;
+    border-color: #16a34a;
+  }
+  .badge-course-校訂必修 {
+    background-color: #fef9c3;
+    color: #a16207;
+    border-color: #ca8a04;
+  }
+  .badge-course-多元選修 {
+    background-color: #ffe4e6;
+    color: #be123c;
+    border-color: #e11d48;
+  }
+  .badge-course-彈性課程 {
+    background-color: #f3e8ff;
+    color: #7e22ce;
+    border-color: #9333ea;
+  }
 }
