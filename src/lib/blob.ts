@@ -14,10 +14,15 @@ export async function uploadCoursePlanPdf(
     return { error: "檔案大小不可超過 2MB。" };
   }
 
-  const blob = await put(`course-pdfs/${schoolId}/${Date.now()}.pdf`, file, {
-    access: "public",
-  });
-  return { url: blob.url };
+  try {
+    const blob = await put(`course-pdfs/${schoolId}/${Date.now()}.pdf`, file, {
+      access: "public",
+    });
+    return { url: blob.url };
+  } catch (err) {
+    console.error("[Blob upload error]", err);
+    return { error: "檔案上傳失敗，請稍後再試。" };
+  }
 }
 
 export async function deleteCoursePlanPdf(url: string): Promise<void> {
