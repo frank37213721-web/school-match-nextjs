@@ -150,28 +150,43 @@ export async function bulkImportRegistryFromSeed(): Promise<{ ok: true; added: n
   const { SCHOOL_CODE_MAP, SCHOOLS_BY_DISTRICT } = await import("@/db/seedData/schoolCodes");
 
   const existing = await getAllRegistry();
-  const existingNames = new Set(existing.map((r) => r.name));
+  const existingCodes = new Set(existing.map((r) => r.code).filter((c): c is string => !!c));
+  const existingCodelessNames = new Set(existing.filter((r) => !r.code).map((r) => r.name));
 
-  const byName = new Map<string, { code: string | null; district: string | null }>();
-  for (const [code, name] of Object.entries(SCHOOL_CODE_MAP)) {
-    if (!existingNames.has(name)) byName.set(name, { code, district: null });
-  }
+  // Keyed by code (not name) so schools that share an identical name across
+  // different cities — e.g. 市立三民高中 exists in both 新北市 and 高雄市 —
+  // each get their own row instead of the second silently overwriting the
+  // first. Only codeless district-map entries fall back to a name key.
+  const nameToDistrict = new Map<string, string>();
   for (const [district, names] of Object.entries(SCHOOLS_BY_DISTRICT)) {
     for (const name of names) {
-      if (existingNames.has(name)) continue;
-      const entry = byName.get(name);
-      if (entry) entry.district = entry.district ?? district;
-      else byName.set(name, { code: null, district });
+      if (!nameToDistrict.has(name)) nameToDistrict.set(name, district);
     }
   }
 
-  const rows = [...byName.entries()].map(([name, { code, district }]) => ({ name, code, district }));
+  const rows: { name: string; code: string | null; district: string | null }[] = [];
+  const codedNames = new Set<string>();
+  for (const [code, name] of Object.entries(SCHOOL_CODE_MAP)) {
+    codedNames.add(name);
+    if (existingCodes.has(code)) continue;
+    rows.push({ name, code, district: nameToDistrict.get(name) ?? null });
+  }
+  const addedCodelessNames = new Set<string>();
+  for (const [district, names] of Object.entries(SCHOOLS_BY_DISTRICT)) {
+    for (const name of names) {
+      if (codedNames.has(name)) continue;
+      if (existingCodelessNames.has(name) || addedCodelessNames.has(name)) continue;
+      addedCodelessNames.add(name);
+      rows.push({ name, code: null, district });
+    }
+  }
+
   if (rows.length > 0) {
     await db.insert(schoolRegistry).values(rows);
   }
 
   revalidatePath("/admin");
-  return { ok: true, added: rows.length, skipped: existingNames.size };
+  return { ok: true, added: rows.length, skipped: existing.length };
 }
 
 export type RegistryDiff = {

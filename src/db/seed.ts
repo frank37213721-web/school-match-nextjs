@@ -19,27 +19,34 @@ async function main() {
     return;
   }
 
-  // Same precedence as the old admin bulk-import: code-map entries first
-  // (district left blank), then district-map entries either fill in a blank
-  // district on an existing by-name row or insert a new one.
-  const byName = new Map<string, { code: string | null; district: string | null }>();
-
-  for (const [code, name] of Object.entries(SCHOOL_CODE_MAP)) {
-    byName.set(name, { code, district: null });
-  }
+  // Keyed by code (not name) so schools that share an identical name across
+  // different cities — e.g. 市立三民高中 exists in both 新北市 and 高雄市 —
+  // each keep their own row instead of the second silently overwriting the
+  // first. Only codeless district-map entries fall back to a name key, since
+  // that's the only identifier they have.
+  const byCode = new Map<string, { name: string; code: string | null; district: string | null }>();
+  const nameToDistrict = new Map<string, string>();
 
   for (const [district, names] of Object.entries(SCHOOLS_BY_DISTRICT)) {
     for (const name of names) {
-      const existing = byName.get(name);
-      if (existing) {
-        if (!existing.district) existing.district = district;
-      } else {
-        byName.set(name, { code: null, district });
-      }
+      if (!nameToDistrict.has(name)) nameToDistrict.set(name, district);
     }
   }
 
-  const rows = [...byName.entries()].map(([name, { code, district }]) => ({
+  for (const [code, name] of Object.entries(SCHOOL_CODE_MAP)) {
+    byCode.set(code, { name, code, district: nameToDistrict.get(name) ?? null });
+  }
+
+  const codedNames = new Set([...byCode.values()].map((r) => r.name));
+  const byNamelessCode = new Map<string, { name: string; code: string | null; district: string | null }>();
+  for (const [district, names] of Object.entries(SCHOOLS_BY_DISTRICT)) {
+    for (const name of names) {
+      if (codedNames.has(name) || byNamelessCode.has(name)) continue;
+      byNamelessCode.set(name, { name, code: null, district });
+    }
+  }
+
+  const rows = [...byCode.values(), ...byNamelessCode.values()].map(({ name, code, district }) => ({
     name,
     code,
     district,
