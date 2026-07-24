@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { changeSchoolPassword, updateSchoolProfile } from "@/actions/schools";
 import type { CurrentSchool } from "@/lib/auth";
+import { toast } from "@/lib/toast";
 
 const DISTRICTS = ["", "北一區", "北二區", "北三區", "中區", "南區", "其他"] as const;
 
@@ -24,20 +25,16 @@ export function SchoolInfoForm({ school }: { school: CurrentSchool }) {
     school.academicDirectorEmail ?? ""
   );
   const [principalEmail, setPrincipalEmail] = useState(school.principalEmail ?? "");
-  const [profileMessage, setProfileMessage] = useState<{ type: "success" | "error"; text: string } | null>(
-    null
-  );
   const [profilePending, startProfileTransition] = useTransition();
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [pwdMessage, setPwdMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [pwdError, setPwdError] = useState<string | null>(null);
   const [pwdPending, startPwdTransition] = useTransition();
 
   function handleProfileSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setProfileMessage(null);
     startProfileTransition(async () => {
       const result = await updateSchoolProfile({
         name,
@@ -48,29 +45,30 @@ export function SchoolInfoForm({ school }: { school: CurrentSchool }) {
         principalEmail,
       });
       if (!result.ok) {
-        setProfileMessage({ type: "error", text: result.error });
+        toast.error(result.error, "更新失敗");
         return;
       }
-      setProfileMessage({ type: "success", text: "✅ 資料更新成功！" });
+      toast.success("學校基本資料已更新。", "已儲存");
       router.refresh();
     });
   }
 
   function handlePasswordSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setPwdMessage(null);
+    setPwdError(null);
     if (!currentPassword || !newPassword) return;
     if (newPassword !== confirmPassword) {
-      setPwdMessage({ type: "error", text: "❌ 兩次輸入的新密碼不一致。" });
+      setPwdError("兩次輸入的新密碼不一致。");
       return;
     }
     startPwdTransition(async () => {
       const result = await changeSchoolPassword({ currentPassword, newPassword });
       if (!result.ok) {
-        setPwdMessage({ type: "error", text: result.error });
+        setPwdError(result.error);
+        toast.error(result.error, "更新失敗");
         return;
       }
-      setPwdMessage({ type: "success", text: "✅ 密碼已成功更新！" });
+      toast.success("密碼已成功更新。", "已儲存");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
@@ -133,11 +131,6 @@ export function SchoolInfoForm({ school }: { school: CurrentSchool }) {
           <Label className="mb-2 block">校長 Email</Label>
           <Input type="email" value={principalEmail} onChange={(e) => setPrincipalEmail(e.target.value)} />
         </div>
-        {profileMessage && (
-          <p className={profileMessage.type === "success" ? "text-sm text-status-open" : "text-sm text-destructive"}>
-            {profileMessage.text}
-          </p>
-        )}
         <Button type="submit" disabled={profilePending}>
           <Save className="size-4" />
           {profilePending ? "儲存中…" : "儲存所有變更"}
@@ -171,11 +164,7 @@ export function SchoolInfoForm({ school }: { school: CurrentSchool }) {
             />
           </div>
         </div>
-        {pwdMessage && (
-          <p className={pwdMessage.type === "success" ? "text-sm text-status-open" : "text-sm text-destructive"}>
-            {pwdMessage.text}
-          </p>
-        )}
+        {pwdError && <p className="text-sm text-destructive">{pwdError}</p>}
         <Button type="submit" variant="secondary" disabled={pwdPending || !currentPassword || !newPassword}>
           {pwdPending ? "更新中…" : "更新密碼"}
         </Button>

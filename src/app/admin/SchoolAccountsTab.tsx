@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { deleteSchoolCascade } from "@/actions/admin";
+import { toast } from "@/lib/toast";
 
 type SchoolRow = {
   id: string;
@@ -103,7 +104,12 @@ function SchoolRowItem({ school }: { school: SchoolRow }) {
 
   function handleDelete() {
     startTransition(async () => {
-      await deleteSchoolCascade(school.id);
+      const result = await deleteSchoolCascade(school.id);
+      if (!result.ok) {
+        toast.error(result.error, "刪除失敗");
+        return;
+      }
+      toast.success(`「${school.name}」已刪除。`, "已刪除");
       router.refresh();
     });
   }

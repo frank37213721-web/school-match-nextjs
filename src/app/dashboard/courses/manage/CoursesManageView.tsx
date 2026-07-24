@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { CourseForm } from "@/components/courses/CourseForm";
 import { createCourse, deleteCourse, updateCourse } from "@/actions/courses";
 import type { courses as coursesTable } from "@/db/schema";
+import { toast } from "@/lib/toast";
 
 type CourseRow = typeof coursesTable.$inferSelect;
 
@@ -29,7 +30,12 @@ export function CoursesManageView({ courses }: { courses: CourseRow[] }) {
 
       <TabsContent value="add" className="pt-4">
         <div className="card-shadow max-w-2xl rounded-lg border border-border bg-card p-8">
-          <CourseForm submitLabel="確認新增課程" onSubmit={createCourse} onSuccess={() => router.refresh()} />
+          <CourseForm
+            submitLabel="確認新增課程"
+            successMessage="課程已成功建立。"
+            onSubmit={createCourse}
+            onSuccess={() => router.refresh()}
+          />
         </div>
       </TabsContent>
 
@@ -61,8 +67,10 @@ function CourseEditRow({ course, onChanged }: { course: CourseRow; onChanged: ()
         setDeleteError(result.error);
         setBlockingSchools(result.blockingSchools ?? null);
         setConfirmingDelete(false);
+        toast.error(result.error, "刪除失敗");
         return;
       }
+      toast.success(`「${course.title}」已刪除。`, "已刪除");
       onChanged();
     });
   }
@@ -85,6 +93,7 @@ function CourseEditRow({ course, onChanged }: { course: CourseRow; onChanged: ()
       <div className="flex flex-col gap-4 px-5">
         <CourseForm
           submitLabel="儲存修改"
+          successMessage="課程資料已更新。"
           initial={{
             title: course.title,
             courseType: course.courseType,

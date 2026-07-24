@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { ActionResult } from "@/actions/courses";
+import { toast } from "@/lib/toast";
 
 const COURSE_TYPES = ["部定必修", "加深加廣選修", "校訂必修", "多元選修", "彈性課程"] as const;
 const ACADEMIC_YEARS = ["114", "115", "116", "117"] as const;
@@ -38,11 +39,13 @@ export type CourseFormValues = {
 export function CourseForm({
   initial,
   submitLabel,
+  successMessage,
   onSubmit,
   onSuccess,
 }: {
   initial?: Partial<CourseFormValues>;
   submitLabel: string;
+  successMessage: string;
   onSubmit: (formData: FormData) => Promise<ActionResult>;
   onSuccess: () => void;
 }) {
@@ -64,8 +67,10 @@ export function CourseForm({
       const result = await onSubmit(formData);
       if (!result.ok) {
         setError(result.error);
+        toast.error(result.error, "儲存失敗");
         return;
       }
+      toast.success(successMessage, "已儲存");
       onSuccess();
     });
   }

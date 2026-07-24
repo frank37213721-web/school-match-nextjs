@@ -30,6 +30,11 @@ export async function deleteSchoolCascade(schoolId: string): Promise<ActionResul
     await tx.delete(schools).where(eq(schools.id, schoolId));
   });
 
+  // schools.id IS the Neon Auth user id — without this, the login identity
+  // (email/password) survives the school row being deleted, silently
+  // blocking that email from ever registering again ("already exists").
+  await auth.admin.removeUser({ userId: schoolId });
+
   revalidatePath("/admin");
   revalidatePath("/");
   return { ok: true };

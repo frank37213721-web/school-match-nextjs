@@ -16,6 +16,7 @@ import {
   type RegistryDiff,
 } from "@/actions/admin";
 import type { RegistryRow } from "@/lib/excel";
+import { toast } from "@/lib/toast";
 
 type RegistryEntry = { id: number; code: string | null; name: string; district: string | null };
 
@@ -107,7 +108,12 @@ function RegistryDisplayRow({
 
   function handleDelete() {
     startTransition(async () => {
-      await deleteRegistryRow(row.id);
+      const result = await deleteRegistryRow(row.id);
+      if (!result.ok) {
+        toast.error(result.error, "刪除失敗");
+        return;
+      }
+      toast.success(`「${row.name}」已從清單移除。`, "已刪除");
       onDeleted();
     });
   }
@@ -135,7 +141,12 @@ function RegistryEditRow({ row, onDone }: { row: RegistryEntry; onDone: () => vo
 
   function handleSave() {
     startTransition(async () => {
-      await updateRegistryRow(row.id, { code, name, district });
+      const result = await updateRegistryRow(row.id, { code, name, district });
+      if (!result.ok) {
+        toast.error(result.error, "儲存失敗");
+        return;
+      }
+      toast.success(`「${name}」已更新。`, "已儲存");
       onDone();
     });
   }
@@ -156,13 +167,12 @@ function RegistryEditRow({ row, onDone }: { row: RegistryEntry; onDone: () => vo
 }
 
 function BulkImportSection({ onDone }: { onDone: () => void }) {
-  const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function handleImport() {
     startTransition(async () => {
       const result = await bulkImportRegistryFromSeed();
-      setMessage(`匯入完成：新增 ${result.added} 筆，略過 ${result.skipped} 筆`);
+      toast.success(`新增 ${result.added} 筆，略過 ${result.skipped} 筆已存在的學校。`, "匯入完成");
       onDone();
     });
   }
@@ -178,7 +188,6 @@ function BulkImportSection({ onDone }: { onDone: () => void }) {
         <Button className="w-fit" onClick={handleImport} disabled={pending}>
           {pending ? "匯入中…" : "開始匯入"}
         </Button>
-        {message && <p className="text-sm text-status-open">{message}</p>}
       </div>
     </details>
   );
@@ -199,18 +208,16 @@ function ImportUploadSection({ onDone }: { onDone: () => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [diff, setDiff] = useState<RegistryDiff | null>(null);
   const [deleteMissing, setDeleteMissing] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function handlePreview() {
     if (!file) return;
-    setMessage(null);
     startTransition(async () => {
       const formData = new FormData();
       formData.set("file", file);
       const result = await previewRegistryImport(formData);
       if ("error" in result) {
-        setMessage(result.error);
+        toast.error(result.error, "預覽失敗");
         return;
       }
       setDiff(result);
@@ -225,10 +232,11 @@ function ImportUploadSection({ onDone }: { onDone: () => void }) {
         ...diff.updated.map((u) => u.to),
       ];
       const result = await confirmRegistryImport(rows, deleteMissing);
-      setMessage(
-        `✅ 完成：新增 ${result.added} 筆，更新 ${result.updated} 筆${
+      toast.success(
+        `新增 ${result.added} 筆，更新 ${result.updated} 筆${
           deleteMissing ? `，刪除 ${result.deleted} 筆` : ""
-        }`
+        }`,
+        "匯入完成"
       );
       setDiff(null);
       setFile(null);
@@ -276,8 +284,6 @@ function ImportUploadSection({ onDone }: { onDone: () => void }) {
             </Button>
           </div>
         )}
-
-        {message && <p className="text-sm text-status-open">{message}</p>}
       </div>
     </details>
   );
@@ -287,17 +293,16 @@ function AddRegistrySection({ onDone }: { onDone: () => void }) {
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [district, setDistrict] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function handleAdd() {
-    setMessage(null);
     startTransition(async () => {
       const result = await addRegistryRow({ code, name, district });
       if (!result.ok) {
-        setMessage(result.error);
+        toast.error(result.error, "新增失敗");
         return;
       }
+      toast.success(`「${name}」已加入學校清單。`, "已新增");
       setCode("");
       setName("");
       setDistrict("");
@@ -313,7 +318,6 @@ function AddRegistrySection({ onDone }: { onDone: () => void }) {
         <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="學校名稱" />
         <Input value={district} onChange={(e) => setDistrict(e.target.value)} placeholder="分區（選填）" />
       </div>
-      {message && <p className="mt-2 text-sm text-destructive">{message}</p>}
       <Button className="mt-3 w-fit" onClick={handleAdd} disabled={pending}>
         新增
       </Button>

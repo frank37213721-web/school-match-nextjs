@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { TermsGate } from "./TermsGate";
 import { lookupSchoolByCode, registerSchool } from "@/actions/schools";
+import { toast } from "@/lib/toast";
 
 const DISTRICTS = ["", "北一區", "北二區", "北三區", "中區", "南區", "其他"] as const;
 
@@ -86,9 +87,11 @@ export function RegisterForm() {
       });
       if (!result.ok) {
         setError(result.error);
+        toast.error(result.error, "註冊失敗");
         return;
       }
-      router.push("/login?registered=1");
+      toast.success("您的學校帳號已成功建立，現在可以登入了。", "註冊成功");
+      router.push("/login");
       router.refresh();
     });
   }

@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { ForgotPasswordSection } from "@/components/auth/ForgotPasswordSection";
 import { RegisterForm } from "@/components/auth/RegisterForm";
 import { loginSchool } from "@/actions/schools";
+import { toast } from "@/lib/toast";
 
 export function LoginForm() {
   const router = useRouter();
@@ -26,8 +27,10 @@ export function LoginForm() {
       const result = await loginSchool({ phone, password });
       if (!result.ok) {
         setError(result.error);
+        toast.error(result.error, "登入失敗");
         return;
       }
+      toast.success(`歡迎回來，${result.name}！`, "登入成功");
       router.push(result.role === "SiteAdmin" ? "/admin" : "/");
       router.refresh();
     });

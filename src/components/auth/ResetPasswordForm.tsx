@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { resetSchoolPassword } from "@/actions/schools";
+import { toast } from "@/lib/toast";
 
 export function ResetPasswordForm({ token }: { token: string | null }) {
   const router = useRouter();
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
   const [pending, startTransition] = useTransition();
 
   function handleSubmit(e: React.FormEvent) {
@@ -32,15 +32,13 @@ export function ResetPasswordForm({ token }: { token: string | null }) {
       const result = await resetSchoolPassword({ token, newPassword });
       if (!result.ok) {
         setError(result.error);
+        toast.error(result.error, "重設密碼失敗");
         return;
       }
-      setSuccess(true);
-      setTimeout(() => router.push("/login"), 1500);
+      toast.success("密碼已重設成功，請用新密碼登入。", "重設成功");
+      router.push("/login");
+      router.refresh();
     });
-  }
-
-  if (success) {
-    return <p className="text-sm text-status-open">✅ 密碼已重設成功，即將前往登入頁面…</p>;
   }
 
   return (

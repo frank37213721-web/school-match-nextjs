@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { requestSchoolPasswordReset } from "@/actions/schools";
+import { toast } from "@/lib/toast";
 
 export function ForgotPasswordSection() {
   const [phone, setPhone] = useState("");
@@ -16,12 +17,15 @@ export function ForgotPasswordSection() {
     e.preventDefault();
     setMessage(null);
     if (!phone) {
-      setMessage("⚠️ 請輸入學校帳號（電話號碼）。");
+      setMessage("請輸入學校帳號（電話號碼）。");
       return;
     }
     startTransition(async () => {
       await requestSchoolPasswordReset(phone);
-      setMessage("📧 若此帳號存在，系統已寄出一封重設密碼的連結信至承辦人 Email。請至信箱收取後點擊連結設定新密碼。");
+      toast.success(
+        "若此帳號存在，系統已寄出一封重設密碼的連結信至承辦人 Email。請至信箱收取後點擊連結設定新密碼。",
+        "已送出"
+      );
       setPhone("");
     });
   }

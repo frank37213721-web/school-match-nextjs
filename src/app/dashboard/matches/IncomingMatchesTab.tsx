@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check, Inbox, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { approveMatch, rejectMatch } from "@/actions/matches";
+import { toast } from "@/lib/toast";
 
 type IncomingMatch = {
   id: number;
@@ -40,14 +41,24 @@ function MatchRow({ match, onChanged }: { match: IncomingMatch; onChanged: () =>
 
   function handleApprove() {
     startTransition(async () => {
-      await approveMatch(match.id);
+      const result = await approveMatch(match.id);
+      if (!result.ok) {
+        toast.error(result.error, "操作失敗");
+        return;
+      }
+      toast.success(`已答應「${match.partnerSchoolName}」的申請。`, "已確認合作");
       onChanged();
     });
   }
 
   function handleReject() {
     startTransition(async () => {
-      await rejectMatch(match.id);
+      const result = await rejectMatch(match.id);
+      if (!result.ok) {
+        toast.error(result.error, "操作失敗");
+        return;
+      }
+      toast.success(`已婉拒「${match.partnerSchoolName}」的申請。`, "已婉拒");
       onChanged();
     });
   }
