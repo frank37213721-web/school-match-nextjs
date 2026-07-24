@@ -38,7 +38,21 @@ function toCurrentSchool(row: NonNullable<Awaited<ReturnType<typeof getSchoolByI
 
 /** Returns the signed-in school row, or null if not signed in / no row yet. */
 export async function getCurrentSchool(): Promise<CurrentSchool | null> {
-  const { data } = await auth.getSession();
+  let data;
+  try {
+    ({ data } = await auth.getSession());
+  } catch (err) {
+    // On public pages (not covered by middleware.ts) the session-cache
+    // cookie can be due for a refresh during a plain render, which Next.js
+    // rejects outside a Server Action/Route Handler. Degrade to "unknown
+    // session" for this render rather than crashing the page — the next
+    // request (or the middleware-covered dashboard/admin routes) refreshes
+    // the cookie normally.
+    if (err instanceof Error && err.message.includes("Cookies can only be modified")) {
+      return null;
+    }
+    throw err;
+  }
   if (!data?.user) return null;
 
   const row = await getSchoolById(data.user.id);
