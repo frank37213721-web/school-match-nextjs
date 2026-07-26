@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { schools } from "@/db/schema";
-import { getRegistryByCode } from "@/db/queries/registry";
+import { getRegistryByCode, searchRegistryByName } from "@/db/queries/registry";
 import { getSchoolByName, getSchoolByPhone } from "@/db/queries/schools";
 import { requireUser } from "@/lib/auth";
 import { auth } from "@/lib/neon-auth";
@@ -34,6 +34,16 @@ export async function lookupSchoolByCode(
   const row = await getRegistryByCode(trimmed);
   if (!row) return null;
   return { name: row.name, district: row.district };
+}
+
+/** Name-substring search over the school registry, for autocomplete inputs. */
+export async function searchSchoolNames(
+  query: string
+): Promise<{ name: string; district: string | null }[]> {
+  const trimmed = query.trim();
+  if (trimmed.length < 1) return [];
+  const rows = await searchRegistryByName(trimmed);
+  return rows.map((r) => ({ name: r.name, district: r.district }));
 }
 
 export async function registerSchool(input: {

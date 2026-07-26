@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { CalendarClock, CalendarX2, FileText, ListChecks, Save, School, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { ActionResult } from "@/actions/courses";
+import { searchSchoolNames } from "@/actions/schools";
 import { toast } from "@/lib/toast";
 
 const COURSE_TYPES = ["部定必修", "加深加廣選修", "校訂必修", "多元選修", "彈性課程"] as const;
@@ -68,6 +69,7 @@ export function CourseForm({
   });
   const [closedToMatching, setClosedToMatching] = useState(initial?.closedToMatching ?? false);
   const [applicationDeadline, setApplicationDeadline] = useState(initial?.applicationDeadline ?? "");
+  const [partnerNotesError, setPartnerNotesError] = useState<string | null>(null);
 
   function handleMaxSchoolsChange(value: number) {
     const next = Math.max(0, value);
@@ -82,6 +84,13 @@ export function CourseForm({
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    setPartnerNotesError(null);
+
+    if (closedToMatching && partnerNotes.every((n) => !n.trim())) {
+      setPartnerNotesError("勾選「不想再增加合作學校」時，請至少填寫一間已找到的合作學校。");
+      return;
+    }
+
     const formData = new FormData(e.currentTarget);
     formData.set("courseType", courseType);
     if (isFlexible) formData.set("credits", "0");
@@ -244,20 +253,21 @@ export function CourseForm({
         <div>
           <p className="mb-2 flex items-center gap-1.5 text-sm font-medium">
             <School className="size-4 text-muted-foreground" />
-            已找到的合作學校（選填）
+            已找到的合作學校
           </p>
           <p className="mb-2 text-sm text-muted-foreground">
             如果您已經私下敲定部分合作學校，可以先填在這裡；沒有填的空格會在課程大廳公開徵求。
           </p>
           <div className="flex flex-col gap-2">
             {partnerNotes.map((note, i) => (
-              <Input
+              <PartnerSchoolInput
                 key={i}
+                index={i}
                 value={note}
-                onChange={(e) =>
-                  setPartnerNotes((prev) => prev.map((n, idx) => (idx === i ? e.target.value : n)))
-                }
-                placeholder={`合作學校 ${i + 1}（例：市立三民高中）`}
+                onChange={(next) => {
+                  setPartnerNotesError(null);
+                  setPartnerNotes((prev) => prev.map((n, idx) => (idx === i ? next : n)));
+                }}
               />
             ))}
           </div>
@@ -267,7 +277,10 @@ export function CourseForm({
       <div className="flex items-start gap-2">
         <Checkbox
           checked={closedToMatching}
-          onCheckedChange={(v) => setClosedToMatching(!!v)}
+          onCheckedChange={(v) => {
+            setClosedToMatching(!!v);
+            setPartnerNotesError(null);
+          }}
           className="mt-0.5"
         />
         <div>
@@ -277,6 +290,8 @@ export function CourseForm({
           </p>
         </div>
       </div>
+
+      {partnerNotesError && <p className="text-sm text-destructive">{partnerNotesError}</p>}
 
       <div>
         <Label className="mb-2 flex items-center gap-1.5">
@@ -362,5 +377,75 @@ export function CourseForm({
         )}
       </Button>
     </form>
+  );
+}
+
+function PartnerSchoolInput({
+  index,
+  value,
+  onChange,
+}: {
+  index: number;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [suggestions, setSuggestions] = useState<{ name: string; district: string | null }[]>([]);
+  const [open, setOpen] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestIdRef = useRef(0);
+
+  function handleInputChange(next: string) {
+    onChange(next);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    const trimmed = next.trim();
+    if (!trimmed) {
+      setSuggestions([]);
+      setOpen(false);
+      return;
+    }
+
+    const requestId = ++requestIdRef.current;
+    debounceRef.current = setTimeout(async () => {
+      const results = await searchSchoolNames(trimmed);
+      if (requestIdRef.current !== requestId) return; // a newer keystroke already fired
+      setSuggestions(results);
+      setOpen(results.length > 0);
+    }, 250);
+  }
+
+  function handleSelect(name: string, district: string | null) {
+    onChange(district ? `${name}（${district}）` : name);
+    setOpen(false);
+    setSuggestions([]);
+  }
+
+  return (
+    <div className="relative">
+      <Input
+        value={value}
+        onChange={(e) => handleInputChange(e.target.value)}
+        onFocus={() => suggestions.length > 0 && setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        placeholder={`合作學校 ${index + 1}（例：市立三民高中）`}
+        autoComplete="off"
+      />
+      {open && (
+        <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border border-border bg-card shadow-elevation-3">
+          {suggestions.map((s, i) => (
+            <button
+              key={i}
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => handleSelect(s.name, s.district)}
+              className="block w-full px-3 py-2 text-left text-sm transition-colors hover:bg-muted"
+            >
+              {s.name}
+              {s.district && <span className="text-muted-foreground">（{s.district}）</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

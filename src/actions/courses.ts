@@ -55,6 +55,13 @@ function readCourseFields(formData: FormData) {
   });
 }
 
+function validateClosedToMatching(data: { closedToMatching: boolean; partnerNotes: string[] }) {
+  if (data.closedToMatching && data.partnerNotes.every((n) => !n.trim())) {
+    return "勾選「不想再增加合作學校」時，請至少填寫一間已找到的合作學校。";
+  }
+  return null;
+}
+
 export async function createCourse(formData: FormData): Promise<ActionResult> {
   const school = await requireUser();
   const parsed = readCourseFields(formData);
@@ -63,6 +70,10 @@ export async function createCourse(formData: FormData): Promise<ActionResult> {
   }
   if (parsed.data.endHour <= parsed.data.startHour) {
     return { ok: false, error: "結束時間必須晚於開始時間。" };
+  }
+  const closedToMatchingError = validateClosedToMatching(parsed.data);
+  if (closedToMatchingError) {
+    return { ok: false, error: closedToMatchingError };
   }
 
   let planPdfUrl: string | null = null;
@@ -96,6 +107,10 @@ export async function updateCourse(courseId: number, formData: FormData): Promis
   }
   if (parsed.data.endHour <= parsed.data.startHour) {
     return { ok: false, error: "結束時間必須晚於開始時間。" };
+  }
+  const closedToMatchingError = validateClosedToMatching(parsed.data);
+  if (closedToMatchingError) {
+    return { ok: false, error: closedToMatchingError };
   }
 
   let planPdfUrl = existing.planPdfUrl;
