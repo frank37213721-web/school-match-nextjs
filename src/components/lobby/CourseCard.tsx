@@ -42,23 +42,23 @@ export function CourseCard({
   const [expanded, setExpanded] = useState(false);
   const [applyOpen, setApplyOpen] = useState(false);
 
-  const activeCount = course.approvedCount + course.pendingCount;
-  const isFull = activeCount >= course.maxSchools;
   const isHost = currentSchoolId === course.hostSchoolId;
+  const partnerNotes = course.partnerNotes.filter((n) => n.trim().length > 0);
+  const filledCount = course.approvedCount + partnerNotes.length;
 
   let statusLabel: string;
   let statusClass: string;
   let statusDotClass: string;
-  if (isFull) {
-    statusLabel = "名額已滿";
+  if (!course.isSeeking) {
+    statusLabel = course.isFull ? "名額已滿" : "已不再徵求";
     statusClass = "bg-status-full/10 text-status-full border-status-full";
     statusDotClass = "bg-status-full";
-  } else if (course.approvedCount > 0) {
-    statusLabel = `${course.approvedCount}/${course.maxSchools} 所`;
+  } else if (filledCount > 0) {
+    statusLabel = `${filledCount}/${course.maxSchools} 所`;
     statusClass = "bg-status-partial/10 text-status-partial border-status-partial";
     statusDotClass = "bg-status-partial";
   } else {
-    statusLabel = `開放中 ${course.approvedCount}/${course.maxSchools}`;
+    statusLabel = `開放中 ${filledCount}/${course.maxSchools}`;
     statusClass = "bg-status-open/10 text-status-open border-status-open";
     statusDotClass = "bg-status-open";
   }
@@ -112,11 +112,11 @@ export function CourseCard({
             此為您開設的課程，無法申請配對。
           </p>
         ) : isLoggedIn ? (
-          <Button size="sm" disabled={isFull} onClick={() => setApplyOpen(true)}>
-            {isFull ? (
+          <Button size="sm" disabled={!course.isSeeking} onClick={() => setApplyOpen(true)}>
+            {!course.isSeeking ? (
               <>
                 <Ban className="size-4" />
-                名額已滿
+                {course.isFull ? "名額已滿" : "已不再徵求"}
               </>
             ) : (
               "申請配對 →"
@@ -168,7 +168,20 @@ export function CourseCard({
               <p className="flex items-center gap-1.5">
                 <CheckCircle2 className="size-3.5 text-muted-foreground" />
                 目前：已配對 {course.approvedCount} 所　待審 {course.pendingCount} 所
+                {partnerNotes.length > 0 && `　已敲定 ${partnerNotes.length} 所`}
               </p>
+              {course.applicationDeadline && (
+                <p className="flex items-center gap-1.5">
+                  <CalendarClock className="size-3.5 text-muted-foreground" />
+                  合作邀請截止：{course.applicationDeadline}
+                </p>
+              )}
+              {partnerNotes.length > 0 && (
+                <p className="flex items-start gap-1.5">
+                  <School className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+                  <span>已敲定合作學校：{partnerNotes.join("、")}</span>
+                </p>
+              )}
               {course.planPdfUrl && (
                 <p className="flex items-center gap-1.5">
                   <Download className="size-3.5 text-muted-foreground" />

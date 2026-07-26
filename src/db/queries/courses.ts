@@ -2,6 +2,7 @@ import "server-only";
 import { eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { courses, matches, schools } from "@/db/schema";
+import { computeCourseSeekingStatus } from "@/lib/matching";
 
 export async function getCourseById(id: number) {
   const [row] = await db.select().from(courses).where(eq(courses.id, id)).limit(1);
@@ -35,6 +36,9 @@ export async function getLobbyCourses() {
       req1: courses.req1,
       req2: courses.req2,
       req3: courses.req3,
+      partnerNotes: courses.partnerNotes,
+      closedToMatching: courses.closedToMatching,
+      applicationDeadline: courses.applicationDeadline,
     })
     .from(courses)
     .innerJoin(schools, eq(courses.hostSchoolId, schools.id));
@@ -55,11 +59,19 @@ export async function getLobbyCourses() {
     counts.set(m.courseId, c);
   }
 
-  return rows.map((r) => ({
-    ...r,
-    approvedCount: counts.get(r.id)?.approved ?? 0,
-    pendingCount: counts.get(r.id)?.pending ?? 0,
-  }));
+  return rows.map((r) => {
+    const approvedCount = counts.get(r.id)?.approved ?? 0;
+    const pendingCount = counts.get(r.id)?.pending ?? 0;
+    const { isFull, isSeeking } = computeCourseSeekingStatus({
+      maxSchools: r.maxSchools,
+      approvedCount,
+      pendingCount,
+      partnerNotes: r.partnerNotes,
+      closedToMatching: r.closedToMatching,
+      applicationDeadline: r.applicationDeadline,
+    });
+    return { ...r, approvedCount, pendingCount, isFull, isSeeking };
+  });
 }
 
 export async function getCoursesForSchool(hostSchoolId: string) {

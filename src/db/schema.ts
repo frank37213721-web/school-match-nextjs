@@ -7,6 +7,7 @@ import {
   boolean,
   text,
   timestamp,
+  date,
   index,
   uniqueIndex,
   check,
@@ -83,6 +84,16 @@ export const courses = pgTable(
     req1: text("req_1"),
     req2: text("req_2"),
     req3: text("req_3"),
+    // Free-text notes for partner schools the host already lined up outside
+    // the platform — one slot per maxSchools, "" for a slot still open to
+    // public applications. Not tied to real accounts or the matches table.
+    partnerNotes: text("partner_notes").array().notNull().default([]),
+    // When true, this course stops soliciting applications in the lobby
+    // regardless of remaining slots.
+    closedToMatching: boolean("closed_to_matching").notNull().default(false),
+    // After this date, the course also stops soliciting applications even
+    // if slots remain open. Null = no deadline.
+    applicationDeadline: date("application_deadline", { mode: "string" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

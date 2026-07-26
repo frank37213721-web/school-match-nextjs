@@ -14,6 +14,7 @@ import {
 import { getSchoolById } from "@/db/queries/schools";
 import { requireCourseHost, requireUser } from "@/lib/auth";
 import { sendMatchApplicationEmails, sendMatchApprovedEmails, sendMatchRejectedEmail } from "@/lib/email";
+import { countFilledPartnerNotes, isPastDeadline } from "@/lib/matching";
 
 export type ApplyMatchResult =
   | { ok: true; warning?: string }
@@ -33,8 +34,15 @@ export async function applyForMatch(courseId: number): Promise<ApplyMatchResult>
     return { ok: false, error: "⚠️ 您已申請過此課程的媒合，且申請正在處理中或已通過！" };
   }
 
+  if (course.closedToMatching) {
+    return { ok: false, error: "⚠️ 此課程已不再徵求合作學校。" };
+  }
+  if (isPastDeadline(course.applicationDeadline)) {
+    return { ok: false, error: "⚠️ 已超過此課程徵求合作學校的截止日期。" };
+  }
+
   const activeCount = await countActiveMatchesForCourse(courseId);
-  if (activeCount >= course.maxSchools) {
+  if (activeCount + countFilledPartnerNotes(course.partnerNotes) >= course.maxSchools) {
     return { ok: false, error: "⚠️ 此課程合作學校已滿！" };
   }
 
@@ -100,7 +108,7 @@ export async function approveMatch(matchId: number): Promise<MatchDecisionResult
 
   // Re-check capacity server-side in case another application was approved first.
   const approvedCount = await countApprovedMatchesForCourse(match.courseId);
-  if (approvedCount >= course.maxSchools) {
+  if (approvedCount + countFilledPartnerNotes(course.partnerNotes) >= course.maxSchools) {
     return { ok: false, error: "⚠️ 此課程合作學校已滿，無法再核准新的申請。" };
   }
 

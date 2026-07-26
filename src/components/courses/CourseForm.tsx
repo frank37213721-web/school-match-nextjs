@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CalendarClock, FileText, ListChecks, Save, Users } from "lucide-react";
+import { CalendarClock, CalendarX2, FileText, ListChecks, Save, School, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { ActionResult } from "@/actions/courses";
 import { toast } from "@/lib/toast";
@@ -34,6 +35,9 @@ export type CourseFormValues = {
   req1: string | null;
   req2: string | null;
   req3: string | null;
+  partnerNotes: string[];
+  closedToMatching: boolean;
+  applicationDeadline: string | null;
 };
 
 export function CourseForm({
@@ -56,12 +60,34 @@ export function CourseForm({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  const [maxSchools, setMaxSchools] = useState(initial?.maxSchools ?? 2);
+  const [partnerNotes, setPartnerNotes] = useState<string[]>(() => {
+    const notes = [...(initial?.partnerNotes ?? [])];
+    notes.length = Math.max(0, initial?.maxSchools ?? 2);
+    return Array.from(notes, (n) => n ?? "");
+  });
+  const [closedToMatching, setClosedToMatching] = useState(initial?.closedToMatching ?? false);
+  const [applicationDeadline, setApplicationDeadline] = useState(initial?.applicationDeadline ?? "");
+
+  function handleMaxSchoolsChange(value: number) {
+    const next = Math.max(0, value);
+    setMaxSchools(next);
+    setPartnerNotes((prev) => {
+      const resized = prev.slice(0, next);
+      while (resized.length < next) resized.push("");
+      return resized;
+    });
+  }
+
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     const formData = new FormData(e.currentTarget);
     formData.set("courseType", courseType);
     if (isFlexible) formData.set("credits", "0");
+    formData.delete("partnerNotes");
+    partnerNotes.forEach((note) => formData.append("partnerNotes", note));
+    formData.set("closedToMatching", String(closedToMatching));
 
     startTransition(async () => {
       const result = await onSubmit(formData);
@@ -204,8 +230,69 @@ export function CourseForm({
         </div>
         <div>
           <Label className="mb-2 block">跨校學校數目上限</Label>
-          <Input name="maxSchools" type="number" min={0} defaultValue={initial?.maxSchools ?? 2} />
+          <Input
+            name="maxSchools"
+            type="number"
+            min={0}
+            value={maxSchools}
+            onChange={(e) => handleMaxSchoolsChange(Number(e.target.value) || 0)}
+          />
         </div>
+      </div>
+
+      {maxSchools > 0 && (
+        <div>
+          <p className="mb-2 flex items-center gap-1.5 text-sm font-medium">
+            <School className="size-4 text-muted-foreground" />
+            已找到的合作學校（選填）
+          </p>
+          <p className="mb-2 text-sm text-muted-foreground">
+            如果您已經私下敲定部分合作學校，可以先填在這裡；沒有填的空格會在課程大廳公開徵求。
+          </p>
+          <div className="flex flex-col gap-2">
+            {partnerNotes.map((note, i) => (
+              <Input
+                key={i}
+                value={note}
+                onChange={(e) =>
+                  setPartnerNotes((prev) => prev.map((n, idx) => (idx === i ? e.target.value : n)))
+                }
+                placeholder={`合作學校 ${i + 1}（例：市立三民高中）`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-start gap-2">
+        <Checkbox
+          checked={closedToMatching}
+          onCheckedChange={(v) => setClosedToMatching(!!v)}
+          className="mt-0.5"
+        />
+        <div>
+          <Label className="block">新增課程但不想再增加合作學校</Label>
+          <p className="text-sm text-muted-foreground">
+            勾選後，即使還有未填滿的合作學校名額，此課程也不會在大廳公開徵求合作學校。
+          </p>
+        </div>
+      </div>
+
+      <div>
+        <Label className="mb-2 flex items-center gap-1.5">
+          <CalendarX2 className="size-4 text-muted-foreground" />
+          合作邀請截止日期（選填）
+        </Label>
+        <Input
+          name="applicationDeadline"
+          type="date"
+          value={applicationDeadline}
+          onChange={(e) => setApplicationDeadline(e.target.value)}
+          className="w-fit"
+        />
+        <p className="mt-1 text-sm text-muted-foreground">
+          超過此日期後，此課程即使名額未滿，也不會再於課程大廳被徵求合作學校。
+        </p>
       </div>
 
       <div>

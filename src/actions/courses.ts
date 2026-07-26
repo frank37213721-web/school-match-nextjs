@@ -29,16 +29,29 @@ const courseFieldsSchema = z.object({
   req1: z.string().optional(),
   req2: z.string().optional(),
   req3: z.string().optional(),
+  partnerNotes: z.array(z.string()),
+  closedToMatching: z.boolean(),
+  applicationDeadline: z.string().nullable(),
 });
 
 function readCourseFields(formData: FormData) {
   const raw = Object.fromEntries(formData.entries());
   const isFlexible = raw.courseType === "彈性課程";
+  const maxSchools = Number(raw.maxSchools) || 0;
+  const partnerNotes = formData
+    .getAll("partnerNotes")
+    .map((v) => String(v).trim())
+    .slice(0, maxSchools);
+  while (partnerNotes.length < maxSchools) partnerNotes.push("");
+
   return courseFieldsSchema.safeParse({
     ...raw,
     credits: isFlexible ? 0 : raw.credits || undefined,
     spsMin: raw.spsMin || undefined,
     spsMax: raw.spsMax || undefined,
+    partnerNotes,
+    closedToMatching: raw.closedToMatching === "true",
+    applicationDeadline: raw.applicationDeadline ? String(raw.applicationDeadline) : null,
   });
 }
 

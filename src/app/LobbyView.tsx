@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { BookOpen, Inbox } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Hero } from "@/components/lobby/Hero";
 import { CourseCard } from "@/components/lobby/CourseCard";
 import { CourseFilterBar, COURSE_TYPES } from "@/components/lobby/CourseFilterBar";
@@ -27,6 +28,7 @@ export function LobbyView({
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
   const [day, setDay] = useState("全部時間");
   const [page, setPage] = useState(0);
+  const [tab, setTab] = useState<"seeking" | "closed">("seeking");
 
   useEffect(() => {
     // Default to showing the hero for SSR/hydration consistency, then sync
@@ -50,9 +52,13 @@ export function LobbyView({
     setPage(0);
   }
 
+  const seekingCount = useMemo(() => courses.filter((c) => c.isSeeking).length, [courses]);
+  const closedCount = courses.length - seekingCount;
+
   const filtered = useMemo(() => {
     const keyword = search.trim().toLowerCase();
     const result = courses.filter((c) => {
+      if (c.isSeeking !== (tab === "seeking")) return false;
       if (day !== "全部時間" && c.dayOfWeek !== day) return false;
       if (selectedTypes.size > 0 && !selectedTypes.has(c.courseType)) return false;
       if (keyword) {
@@ -66,7 +72,7 @@ export function LobbyView({
         COURSE_TYPES.indexOf(b.courseType as (typeof COURSE_TYPES)[number])
     );
     return result;
-  }, [courses, search, selectedTypes, day]);
+  }, [courses, search, selectedTypes, day, tab]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const clampedPage = Math.min(page, totalPages - 1);
@@ -84,6 +90,20 @@ export function LobbyView({
           <BookOpen className="size-6 text-primary" />
           課程大廳
         </h1>
+
+        <Tabs
+          className="mb-4"
+          value={tab}
+          onValueChange={(v) => {
+            setTab(v as "seeking" | "closed");
+            setPage(0);
+          }}
+        >
+          <TabsList>
+            <TabsTrigger value="seeking">尚在尋求合作學校（{seekingCount}）</TabsTrigger>
+            <TabsTrigger value="closed">已找到合作學校（{closedCount}）</TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         <CourseFilterBar
           search={search}

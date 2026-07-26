@@ -112,6 +112,9 @@ function CourseEditRow({ course, onChanged }: { course: CourseRow; onChanged: ()
             req1: course.req1,
             req2: course.req2,
             req3: course.req3,
+            partnerNotes: course.partnerNotes,
+            closedToMatching: course.closedToMatching,
+            applicationDeadline: course.applicationDeadline,
           }}
           onSubmit={(formData) => updateCourse(course.id, formData)}
           onSuccess={onChanged}
