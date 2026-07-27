@@ -1,13 +1,20 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { schools } from "@/db/schema";
 import { getRegistryByCode, searchRegistryByName } from "@/db/queries/registry";
 import { getSchoolByName, getSchoolByPhone } from "@/db/queries/schools";
+import {
+  createPasswordResetToken,
+  getValidPasswordResetToken,
+  markPasswordResetTokenUsed,
+} from "@/db/queries/passwordResetTokens";
 import { requireUser } from "@/lib/auth";
 import { auth } from "@/lib/neon-auth";
+import { sendPasswordResetEmail } from "@/lib/email";
 import { emailSchema, passwordSchema } from "@/lib/validation";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
@@ -230,13 +237,21 @@ export async function changeSchoolPassword(
   return { ok: true };
 }
 
+// Password reset runs entirely through our own token + Resend email instead
+// of Neon Auth's built-in reset-email delivery (unreliable on its Shared and
+// Custom SMTP providers as of this app's Beta version). The password itself
+// is still stored and validated by Neon Auth — we only bypass the emailing
+// step, setting the new password via the admin API once our own token has
+// been verified.
 export async function requestSchoolPasswordReset(phone: string): Promise<ActionResult> {
   const school = await getSchoolByPhone(phone.trim());
   if (school) {
-    await auth.requestPasswordReset({
-      email: school.registrantEmail,
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/reset-password`,
-    });
+    const token = randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+    await createPasswordResetToken(school.id, token, expiresAt);
+
+    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}`;
+    await sendPasswordResetEmail(school.registrantEmail, resetUrl);
   }
   // Always return the same message regardless of whether the phone matched,
   // to avoid revealing which accounts exist.
@@ -256,14 +271,16 @@ export async function resetSchoolPassword(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "輸入資料有誤。" };
   }
 
-  const { error } = await auth.resetPassword({
-    newPassword: parsed.data.newPassword,
-    token: parsed.data.token,
-  });
-
-  if (error) {
+  const tokenRow = await getValidPasswordResetToken(parsed.data.token);
+  if (!tokenRow) {
     return { ok: false, error: "重設連結無效或已過期，請重新申請。" };
   }
+
+  await auth.admin.setUserPassword({
+    userId: tokenRow.schoolId,
+    newPassword: parsed.data.newPassword,
+  });
+  await markPasswordResetTokenUsed(tokenRow.id);
 
   return { ok: true };
 }

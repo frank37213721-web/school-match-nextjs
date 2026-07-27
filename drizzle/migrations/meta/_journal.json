@@ -15,6 +15,13 @@
       "when": 1785073167804,
       "tag": "0001_bumpy_slapstick",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785124576572,
+      "tag": "0002_burly_tenebrous",
+      "breakpoints": true
     }
   ]
 }

@@ -134,3 +134,15 @@ export async function sendMatchRejectedEmail(
   `);
   return sendEmail(applicantRegistrantEmail, subject, html);
 }
+
+/** Password reset link — sent via our own Resend integration, not Neon Auth's. */
+export async function sendPasswordResetEmail(to: string, resetUrl: string): Promise<boolean> {
+  const subject = "【跨校課程匯流平台】重設密碼";
+  const html = wrapEmail(`
+    <h2 style="margin-top:0;">🔑 重設密碼</h2>
+    <p>我們收到您的重設密碼請求。請點擊下方連結設定新密碼，此連結將於 30 分鐘後失效：</p>
+    <p><a href="${resetUrl}" style="color:#5645d4;">${resetUrl}</a></p>
+    <p>若您沒有提出此請求，請忽略此信件，您的密碼將維持不變。</p>
+  `);
+  return sendEmail(to, subject, html);
+}

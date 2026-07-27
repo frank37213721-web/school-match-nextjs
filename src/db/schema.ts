@@ -138,6 +138,24 @@ export const schoolRegistry = pgTable("school_registry", {
   district: text("district"),
 });
 
+// Our own password-reset tokens, emailed via Resend — bypasses Neon Auth's
+// built-in reset-email delivery (unreliable on its Shared/Custom SMTP
+// provider as of this app's Beta version).
+export const passwordResetTokens = pgTable(
+  "password_reset_tokens",
+  {
+    id: serial("id").primaryKey(),
+    schoolId: text("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    token: text("token").notNull().unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("password_reset_tokens_school_id_idx").on(t.schoolId)]
+);
+
 export const schoolsRelations = relations(schools, ({ many }) => ({
   hostedCourses: many(courses),
   matchesAsPartner: many(matches),
