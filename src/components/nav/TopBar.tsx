@@ -2,19 +2,23 @@ import Link from "next/link";
 import { BookOpen, LayoutDashboard, LogOut } from "lucide-react";
 import { getCurrentSchool } from "@/lib/auth";
 import { buttonVariants } from "@/components/ui/button";
+import { AboutButtons } from "@/components/lobby/AboutButtons";
 
 export async function TopBar() {
   const school = await getCurrentSchool();
 
   return (
     <header className="sticky top-0 z-40 flex items-center justify-between border-b border-border bg-card/90 px-6 py-3.5 backdrop-blur-sm">
-      <Link
-        href="/"
-        className="flex items-center gap-2 text-sm font-semibold tracking-tight text-foreground"
-      >
-        <BookOpen className="size-4" />
-        跨校課程匯流平台
-      </Link>
+      <div className="flex items-center gap-4">
+        <Link
+          href="/"
+          className="flex items-center gap-2 text-sm font-semibold tracking-tight text-foreground"
+        >
+          <BookOpen className="size-4" />
+          跨校課程匯流平台
+        </Link>
+        <AboutButtons />
+      </div>
       <nav className="flex items-center gap-4 text-sm">
         {school ? (
           <>
