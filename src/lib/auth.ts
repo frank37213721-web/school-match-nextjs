@@ -12,6 +12,7 @@ export type CurrentSchool = {
   district: string | null;
   phone: string;
   registrantName: string;
+  registrantExtension: string | null;
   registrantEmail: string;
   academicDirectorEmail: string | null;
   principalEmail: string | null;
@@ -27,6 +28,7 @@ function toCurrentSchool(row: NonNullable<Awaited<ReturnType<typeof getSchoolByI
     district: row.district,
     phone: row.phone,
     registrantName: row.registrantName,
+    registrantExtension: row.registrantExtension,
     registrantEmail: row.registrantEmail,
     academicDirectorEmail: row.academicDirectorEmail,
     principalEmail: row.principalEmail,
