@@ -11,7 +11,6 @@ import { getLobbyCourses } from "@/db/queries/courses";
 import { getAllMatchesDetailed, getApplicantSchoolStats } from "@/db/queries/matches";
 import { getAllRegistry } from "@/db/queries/registry";
 import { getAllSchools } from "@/db/queries/schools";
-import { requireRole } from "@/lib/auth";
 import { SchoolAccountsTab } from "./SchoolAccountsTab";
 import { MatchStatsTab } from "./MatchStatsTab";
 import { CourseRecordsTab } from "./CourseRecordsTab";
@@ -20,8 +19,6 @@ import { RegistryTab } from "./RegistryTab";
 import { CreateAdminForm } from "./CreateAdminForm";
 
 export default async function AdminPage() {
-  await requireRole(["SiteAdmin"]);
-
   const [schools, courses, applicantStats, registry, allMatches] = await Promise.all([
     getAllSchools(),
     getLobbyCourses(),
@@ -36,7 +33,7 @@ export default async function AdminPage() {
     .filter((name) => !registeredNames.has(name));
 
   return (
-    <div className="mx-auto max-w-4xl px-8 py-10">
+    <div>
       <h1 className="mb-6 flex items-center gap-2 page-heading">
         <LayoutDashboard className="size-6 text-primary" />
         系統管理
