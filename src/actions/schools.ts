@@ -15,6 +15,7 @@ import {
 import { requireUser } from "@/lib/auth";
 import { auth } from "@/lib/neon-auth";
 import { sendPasswordResetEmail } from "@/lib/email";
+import { maskName } from "@/lib/mask";
 import { emailSchema, passwordSchema } from "@/lib/validation";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
@@ -33,14 +34,24 @@ const registerSchema = z.object({
   password: passwordSchema,
 });
 
-export async function lookupSchoolByCode(
-  code: string
-): Promise<{ name: string; district: string | null } | null> {
+export async function lookupSchoolByCode(code: string): Promise<{
+  name: string;
+  district: string | null;
+  registered: boolean;
+  maskedRegistrantName: string | null;
+} | null> {
   const trimmed = code.trim().toUpperCase();
   if (!trimmed) return null;
   const row = await getRegistryByCode(trimmed);
   if (!row) return null;
-  return { name: row.name, district: row.district };
+
+  const existing = await getSchoolByName(row.name);
+  return {
+    name: row.name,
+    district: row.district,
+    registered: !!existing,
+    maskedRegistrantName: existing ? maskName(existing.registrantName) : null,
+  };
 }
 
 /** Name-substring search over the school registry, for autocomplete inputs. */

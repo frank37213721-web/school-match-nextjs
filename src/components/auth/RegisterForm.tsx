@@ -26,6 +26,10 @@ export function RegisterForm() {
   const [lookupState, setLookupState] = useState<"idle" | "found" | "not-found">("idle");
   const [district, setDistrict] = useState<string>("");
   const [registryDistrict, setRegistryDistrict] = useState<string | null>(null);
+  const [registeredInfo, setRegisteredInfo] = useState<{
+    registered: boolean;
+    maskedRegistrantName: string | null;
+  } | null>(null);
 
   const [registrantName, setRegistrantName] = useState("");
   const [registrantExtension, setRegistrantExtension] = useState("");
@@ -44,6 +48,7 @@ export function RegisterForm() {
     if (!code) {
       setSchoolName("");
       setLookupState("idle");
+      setRegisteredInfo(null);
       return;
     }
     startTransition(async () => {
@@ -51,10 +56,15 @@ export function RegisterForm() {
       if (result) {
         setSchoolName(result.name);
         setRegistryDistrict(result.district);
+        setRegisteredInfo({
+          registered: result.registered,
+          maskedRegistrantName: result.maskedRegistrantName,
+        });
         setLookupState("found");
       } else {
         setSchoolName("");
         setRegistryDistrict(null);
+        setRegisteredInfo(null);
         setLookupState("not-found");
       }
     });
@@ -119,9 +129,18 @@ export function RegisterForm() {
               maxLength={10}
             />
             {lookupState === "found" && (
-              <p className="mt-1 text-sm text-status-open">
-                ✅ 找到學校：{schoolName} {registryDistrict ? `(${registryDistrict})` : ""}
-              </p>
+              <>
+                <p className="mt-1 text-sm text-status-open">
+                  ✅ 找到學校：{schoolName} {registryDistrict ? `(${registryDistrict})` : ""}
+                </p>
+                {registeredInfo?.registered ? (
+                  <p className="mt-1 text-sm text-status-partial">
+                    ⚠️ 此學校已註冊帳號　承辦人：{registeredInfo.maskedRegistrantName}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-sm text-muted-foreground">此學校尚未註冊帳號</p>
+                )}
+              </>
             )}
             {lookupState === "not-found" && (
               <p className="mt-1 text-sm text-destructive">❌ 找不到此代碼，請確認後重新輸入。</p>
