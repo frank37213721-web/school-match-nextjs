@@ -318,11 +318,11 @@ export function CourseForm({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label className="mb-2 block">最少人數</Label>
-            <Input name="spsMin" type="number" min={0} max={5} defaultValue={initial?.spsMin ?? 0} />
+            <Input name="spsMin" type="number" min={0} max={30} defaultValue={initial?.spsMin ?? 0} />
           </div>
           <div>
             <Label className="mb-2 block">最多人數</Label>
-            <Input name="spsMax" type="number" min={0} max={5} defaultValue={initial?.spsMax ?? 0} />
+            <Input name="spsMax" type="number" min={0} max={30} defaultValue={initial?.spsMax ?? 0} />
           </div>
         </div>
       </div>

@@ -5,10 +5,18 @@ import { eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { courses, matches, schoolRegistry, schools } from "@/db/schema";
+import { getLobbyCourses } from "@/db/queries/courses";
+import { getAllMatchesDetailed } from "@/db/queries/matches";
 import { getAllRegistry } from "@/db/queries/registry";
-import { getSchoolByPhone } from "@/db/queries/schools";
+import { getSchoolByName, getSchoolByPhone } from "@/db/queries/schools";
 import { requireRole } from "@/lib/auth";
-import { buildRegistryWorkbookBuffer, parseRegistryWorkbook, type RegistryRow } from "@/lib/excel";
+import {
+  buildCoursesWorkbookBuffer,
+  buildMatchesWorkbookBuffer,
+  buildRegistryWorkbookBuffer,
+  parseRegistryWorkbook,
+  type RegistryRow,
+} from "@/lib/excel";
 import { auth } from "@/lib/neon-auth";
 import { emailSchema, passwordSchema } from "@/lib/validation";
 
@@ -281,4 +289,83 @@ export async function exportRegistryBuffer(): Promise<Buffer> {
   await requireRole(["SiteAdmin"]);
   const rows = await getAllRegistry();
   return buildRegistryWorkbookBuffer(rows);
+}
+
+export async function exportCoursesBuffer(): Promise<Buffer> {
+  await requireRole(["SiteAdmin"]);
+  const rows = await getLobbyCourses();
+  return buildCoursesWorkbookBuffer(
+    rows.map((r) => ({
+      hostSchoolName: r.hostSchoolName,
+      title: r.title,
+      courseType: r.courseType,
+      academicYear: r.academicYear,
+      semester: r.semester,
+      dayOfWeek: r.dayOfWeek,
+      startHour: r.startHour,
+      endHour: r.endHour,
+      maxSchools: r.maxSchools,
+      approvedCount: r.approvedCount,
+      pendingCount: r.pendingCount,
+    }))
+  );
+}
+
+export async function exportMatchesBuffer(): Promise<Buffer> {
+  await requireRole(["SiteAdmin"]);
+  const rows = await getAllMatchesDetailed();
+  return buildMatchesWorkbookBuffer(rows);
+}
+
+const adminUpdateSchoolSchema = z.object({
+  name: z.string().min(1, "請輸入學校名稱"),
+  district: z.enum(["", "北一區", "北二區", "北三區", "中區", "南區", "其他"]).optional(),
+  phone: z.string().min(4, "電話至少需 4 碼").max(10),
+  registrantName: z.string().min(1, "請輸入承辦人姓名"),
+  registrantExtension: z.string().max(10).optional(),
+  registrantEmail: emailSchema,
+  academicDirectorEmail: z.union([emailSchema, z.literal("")]).optional(),
+  principalEmail: z.union([emailSchema, z.literal("")]).optional(),
+  isHost: z.boolean(),
+  isPartner: z.boolean(),
+});
+
+export async function adminUpdateSchoolProfile(
+  schoolId: string,
+  input: z.infer<typeof adminUpdateSchoolSchema>
+): Promise<ActionResult> {
+  await requireRole(["SiteAdmin"]);
+  const parsed = adminUpdateSchoolSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "輸入資料有誤。" };
+  }
+  const data = parsed.data;
+
+  const existingByName = await getSchoolByName(data.name);
+  if (existingByName && existingByName.id !== schoolId) {
+    return { ok: false, error: "此學校名稱已被其他帳號使用。" };
+  }
+  const existingByPhone = await getSchoolByPhone(data.phone);
+  if (existingByPhone && existingByPhone.id !== schoolId) {
+    return { ok: false, error: "此電話號碼已被其他學校使用。" };
+  }
+
+  await db
+    .update(schools)
+    .set({
+      name: data.name,
+      district: (data.district || null) as (typeof schools.$inferInsert)["district"] | undefined,
+      phone: data.phone,
+      registrantName: data.registrantName,
+      registrantExtension: data.registrantExtension || null,
+      registrantEmail: data.registrantEmail,
+      academicDirectorEmail: data.academicDirectorEmail || null,
+      principalEmail: data.principalEmail || null,
+      isHost: data.isHost,
+      isPartner: data.isPartner,
+    })
+    .where(eq(schools.id, schoolId));
+
+  revalidatePath("/admin");
+  return { ok: true };
 }

@@ -1,5 +1,6 @@
 import "server-only";
 import { and, desc, eq, inArray } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/db";
 import { courses, matches, schools } from "@/db/schema";
 
@@ -86,6 +87,30 @@ export async function countPendingIncomingMatches(hostSchoolId: string): Promise
     .innerJoin(courses, eq(matches.courseId, courses.id))
     .where(and(eq(courses.hostSchoolId, hostSchoolId), eq(matches.status, "pending")));
   return rows.length;
+}
+
+/** All matches with course + both schools' names — admin-wide records tab / Excel export. */
+export async function getAllMatchesDetailed() {
+  const hostSchools = schools;
+  const applicantSchools = alias(schools, "applicant_schools");
+
+  return db
+    .select({
+      id: matches.id,
+      status: matches.status,
+      emailStatus: matches.emailStatus,
+      createdAt: matches.createdAt,
+      updatedAt: matches.updatedAt,
+      courseId: courses.id,
+      courseTitle: courses.title,
+      hostSchoolName: hostSchools.name,
+      applicantSchoolName: applicantSchools.name,
+    })
+    .from(matches)
+    .innerJoin(courses, eq(matches.courseId, courses.id))
+    .innerJoin(hostSchools, eq(courses.hostSchoolId, hostSchools.id))
+    .innerJoin(applicantSchools, eq(matches.partnerSchoolId, applicantSchools.id))
+    .orderBy(desc(matches.createdAt));
 }
 
 /** Per-applicant-school aggregate: total applications sent vs. approved — admin stats tab. */

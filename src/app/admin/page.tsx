@@ -1,23 +1,33 @@
-import { ClipboardList, Handshake, LayoutDashboard, School, UserPlus } from "lucide-react";
+import {
+  BookOpen,
+  ClipboardList,
+  Handshake,
+  LayoutDashboard,
+  School,
+  UserPlus,
+} from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getLobbyCourses } from "@/db/queries/courses";
-import { getApplicantSchoolStats } from "@/db/queries/matches";
+import { getAllMatchesDetailed, getApplicantSchoolStats } from "@/db/queries/matches";
 import { getAllRegistry } from "@/db/queries/registry";
 import { getAllSchools } from "@/db/queries/schools";
 import { requireRole } from "@/lib/auth";
 import { SchoolAccountsTab } from "./SchoolAccountsTab";
 import { MatchStatsTab } from "./MatchStatsTab";
+import { CourseRecordsTab } from "./CourseRecordsTab";
+import { MatchRecordsTab } from "./MatchRecordsTab";
 import { RegistryTab } from "./RegistryTab";
 import { CreateAdminForm } from "./CreateAdminForm";
 
 export default async function AdminPage() {
   await requireRole(["SiteAdmin"]);
 
-  const [schools, courses, applicantStats, registry] = await Promise.all([
+  const [schools, courses, applicantStats, registry, allMatches] = await Promise.all([
     getAllSchools(),
     getLobbyCourses(),
     getApplicantSchoolStats(),
     getAllRegistry(),
+    getAllMatchesDetailed(),
   ]);
 
   const registeredNames = new Set(schools.map((s) => s.name));
@@ -42,6 +52,14 @@ export default async function AdminPage() {
             <Handshake className="size-3.5" />
             配對狀況
           </TabsTrigger>
+          <TabsTrigger value="courses" className="gap-1.5">
+            <BookOpen className="size-3.5" />
+            課程紀錄
+          </TabsTrigger>
+          <TabsTrigger value="matches" className="gap-1.5">
+            <Handshake className="size-3.5" />
+            配對紀錄
+          </TabsTrigger>
           <TabsTrigger value="registry" className="gap-1.5">
             <ClipboardList className="size-3.5" />
             學校清單管理
@@ -58,6 +76,14 @@ export default async function AdminPage() {
 
         <TabsContent value="stats" className="pt-4">
           <MatchStatsTab courses={courses} applicantStats={applicantStats} />
+        </TabsContent>
+
+        <TabsContent value="courses" className="pt-4">
+          <CourseRecordsTab courses={courses} />
+        </TabsContent>
+
+        <TabsContent value="matches" className="pt-4">
+          <MatchRecordsTab matches={allMatches} />
         </TabsContent>
 
         <TabsContent value="registry" className="pt-4">
