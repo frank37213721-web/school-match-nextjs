@@ -27,9 +27,7 @@ export type CourseExportRow = {
   courseType: string;
   academicYear: string;
   semester: string;
-  dayOfWeek: string;
-  startHour: number;
-  endHour: number;
+  timeSlots: string;
   maxSchools: number;
   approvedCount: number;
   pendingCount: number;
@@ -44,9 +42,7 @@ export async function buildCoursesWorkbookBuffer(rows: CourseExportRow[]): Promi
     { header: "課程種類", key: "courseType", width: 14 },
     { header: "學年度", key: "academicYear", width: 10 },
     { header: "學期", key: "semester", width: 10 },
-    { header: "星期", key: "dayOfWeek", width: 8 },
-    { header: "開始時間", key: "startHour", width: 10 },
-    { header: "結束時間", key: "endHour", width: 10 },
+    { header: "開課時間", key: "timeSlots", width: 32 },
     { header: "合作學校上限", key: "maxSchools", width: 14 },
     { header: "已配對", key: "approvedCount", width: 10 },
     { header: "待審核", key: "pendingCount", width: 10 },

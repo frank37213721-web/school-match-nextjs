@@ -72,9 +72,6 @@ export const courses = pgTable(
     academicYear: text("academic_year").notNull(),
     semester: semesterEnum("semester").notNull(),
     credits: integer("credits"),
-    dayOfWeek: dayOfWeekEnum("day_of_week").notNull(),
-    startHour: smallint("start_hour").notNull(),
-    endHour: smallint("end_hour").notNull(),
     syllabus: text("syllabus"),
     planPdfUrl: text("plan_pdf_url"),
     maxStudents: integer("max_students").notNull().default(20),
@@ -99,8 +96,27 @@ export const courses = pgTable(
   },
   (t) => [
     index("courses_host_school_id_idx").on(t.hostSchoolId),
-    index("courses_type_day_idx").on(t.courseType, t.dayOfWeek),
-    check("courses_hour_range", sql`${t.endHour} > ${t.startHour}`),
+    index("courses_type_idx").on(t.courseType),
+  ]
+);
+
+// A course can meet at multiple day/time combinations (e.g. 週一 10:00~12:00
+// and 週三 13:00~15:00), so these live in their own child table rather than
+// flat columns on `courses`.
+export const courseTimeSlots = pgTable(
+  "course_time_slots",
+  {
+    id: serial("id").primaryKey(),
+    courseId: integer("course_id")
+      .notNull()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    dayOfWeek: dayOfWeekEnum("day_of_week").notNull(),
+    startHour: smallint("start_hour").notNull(),
+    endHour: smallint("end_hour").notNull(),
+  },
+  (t) => [
+    index("course_time_slots_course_id_idx").on(t.courseId),
+    check("course_time_slots_hour_range", sql`${t.endHour} > ${t.startHour}`),
   ]
 );
 
@@ -164,6 +180,11 @@ export const schoolsRelations = relations(schools, ({ many }) => ({
 export const coursesRelations = relations(courses, ({ one, many }) => ({
   hostSchool: one(schools, { fields: [courses.hostSchoolId], references: [schools.id] }),
   matches: many(matches),
+  timeSlots: many(courseTimeSlots),
+}));
+
+export const courseTimeSlotsRelations = relations(courseTimeSlots, ({ one }) => ({
+  course: one(courses, { fields: [courseTimeSlots.courseId], references: [courses.id] }),
 }));
 
 export const matchesRelations = relations(matches, ({ one }) => ({

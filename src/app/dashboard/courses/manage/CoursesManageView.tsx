@@ -7,10 +7,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { CourseForm } from "@/components/courses/CourseForm";
 import { createCourse, deleteCourse, updateCourse } from "@/actions/courses";
-import type { courses as coursesTable } from "@/db/schema";
+import type { getCoursesForSchool } from "@/db/queries/courses";
 import { toast } from "@/lib/toast";
 
-type CourseRow = typeof coursesTable.$inferSelect;
+type CourseRow = Awaited<ReturnType<typeof getCoursesForSchool>>[number];
 
 export function CoursesManageView({ courses }: { courses: CourseRow[] }) {
   const router = useRouter();
@@ -100,9 +100,7 @@ function CourseEditRow({ course, onChanged }: { course: CourseRow; onChanged: ()
             academicYear: course.academicYear,
             semester: course.semester,
             credits: course.credits,
-            dayOfWeek: course.dayOfWeek,
-            startHour: course.startHour,
-            endHour: course.endHour,
+            timeSlots: course.timeSlots,
             syllabus: course.syllabus,
             planPdfUrl: course.planPdfUrl,
             maxStudents: course.maxStudents,

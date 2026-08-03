@@ -11,6 +11,7 @@ import {
 import { buttonVariants } from "@/components/ui/button";
 import { getCoursesForSchool } from "@/db/queries/courses";
 import { requireUser } from "@/lib/auth";
+import { formatTimeSlots } from "@/lib/timeSlots";
 
 export default async function MyCoursesPage() {
   const school = await requireUser();
@@ -56,10 +57,7 @@ export default async function MyCoursesPage() {
                   <TableCell>{c.semester}</TableCell>
                   <TableCell>{c.courseType}</TableCell>
                   <TableCell>{c.credits ?? 0}</TableCell>
-                  <TableCell>
-                    {c.dayOfWeek} {String(c.startHour).padStart(2, "0")}:00 ~{" "}
-                    {String(c.endHour).padStart(2, "0")}:00
-                  </TableCell>
+                  <TableCell>{formatTimeSlots(c.timeSlots)}</TableCell>
                   <TableCell>{c.maxStudents}</TableCell>
                   <TableCell>{c.maxSchools}</TableCell>
                 </TableRow>

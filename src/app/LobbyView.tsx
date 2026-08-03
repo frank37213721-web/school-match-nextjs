@@ -59,7 +59,7 @@ export function LobbyView({
     const keyword = search.trim().toLowerCase();
     const result = courses.filter((c) => {
       if (c.isSeeking !== (tab === "seeking")) return false;
-      if (day !== "全部時間" && c.dayOfWeek !== day) return false;
+      if (day !== "全部時間" && !c.timeSlots.some((slot) => slot.dayOfWeek === day)) return false;
       if (selectedTypes.size > 0 && !selectedTypes.has(c.courseType)) return false;
       if (keyword) {
         const haystack = `${c.title} ${c.syllabus ?? ""}`.toLowerCase();

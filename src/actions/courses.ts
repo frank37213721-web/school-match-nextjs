@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { courses, matches, schools } from "@/db/schema";
+import { courses, courseTimeSlots, matches, schools } from "@/db/schema";
 import { getCourseById } from "@/db/queries/courses";
 import { countActiveMatchesForCourse } from "@/db/queries/matches";
 import { requireCourseHost, requireUser } from "@/lib/auth";
@@ -12,15 +12,21 @@ import { deleteCoursePlanPdf, uploadCoursePlanPdf } from "@/lib/blob";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
+const timeSlotSchema = z
+  .object({
+    dayOfWeek: z.enum(["週一", "週二", "週三", "週四", "週五", "週六"]),
+    startHour: z.coerce.number().int().min(0).max(23),
+    endHour: z.coerce.number().int().min(0).max(23),
+  })
+  .refine((slot) => slot.endHour > slot.startHour, { message: "結束時間必須晚於開始時間。" });
+
 const courseFieldsSchema = z.object({
   title: z.string().min(1, "請輸入課程名稱"),
   courseType: z.enum(["部定必修", "加深加廣選修", "校訂必修", "多元選修", "彈性課程"]),
   academicYear: z.string().min(1),
   semester: z.enum(["第一學期", "第二學期", "全學年"]),
   credits: z.coerce.number().int().min(0).max(4).optional(),
-  dayOfWeek: z.enum(["週一", "週二", "週三", "週四", "週五", "週六"]),
-  startHour: z.coerce.number().int().min(0).max(23),
-  endHour: z.coerce.number().int().min(0).max(23),
+  timeSlots: z.array(timeSlotSchema).min(1, "請至少新增一個上課時段"),
   syllabus: z.string().optional(),
   maxStudents: z.coerce.number().int().min(0).default(20),
   maxSchools: z.coerce.number().int().min(0).default(2),
@@ -44,9 +50,17 @@ function readCourseFields(formData: FormData) {
     .slice(0, maxSchools);
   while (partnerNotes.length < maxSchools) partnerNotes.push("");
 
+  let timeSlots: unknown = [];
+  try {
+    timeSlots = JSON.parse(String(raw.timeSlots ?? "[]"));
+  } catch {
+    timeSlots = [];
+  }
+
   return courseFieldsSchema.safeParse({
     ...raw,
     credits: isFlexible ? 0 : raw.credits || undefined,
+    timeSlots,
     spsMin: raw.spsMin || undefined,
     spsMax: raw.spsMax || undefined,
     partnerNotes,
@@ -68,9 +82,6 @@ export async function createCourse(formData: FormData): Promise<ActionResult> {
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "輸入資料有誤。" };
   }
-  if (parsed.data.endHour <= parsed.data.startHour) {
-    return { ok: false, error: "結束時間必須晚於開始時間。" };
-  }
   const closedToMatchingError = validateClosedToMatching(parsed.data);
   if (closedToMatchingError) {
     return { ok: false, error: closedToMatchingError };
@@ -84,11 +95,18 @@ export async function createCourse(formData: FormData): Promise<ActionResult> {
     planPdfUrl = result.url;
   }
 
-  await db.insert(courses).values({
-    hostSchoolId: school.id,
-    ...parsed.data,
-    planPdfUrl,
-  });
+  const { timeSlots, ...courseFields } = parsed.data;
+
+  // neon-http has no transaction support — insert sequentially instead.
+  const [inserted] = await db
+    .insert(courses)
+    .values({
+      hostSchoolId: school.id,
+      ...courseFields,
+      planPdfUrl,
+    })
+    .returning({ id: courses.id });
+  await db.insert(courseTimeSlots).values(timeSlots.map((slot) => ({ courseId: inserted.id, ...slot })));
 
   revalidatePath("/");
   revalidatePath("/dashboard/courses");
@@ -105,9 +123,6 @@ export async function updateCourse(courseId: number, formData: FormData): Promis
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "輸入資料有誤。" };
   }
-  if (parsed.data.endHour <= parsed.data.startHour) {
-    return { ok: false, error: "結束時間必須晚於開始時間。" };
-  }
   const closedToMatchingError = validateClosedToMatching(parsed.data);
   if (closedToMatchingError) {
     return { ok: false, error: closedToMatchingError };
@@ -122,10 +137,15 @@ export async function updateCourse(courseId: number, formData: FormData): Promis
     planPdfUrl = result.url;
   }
 
+  const { timeSlots, ...courseFields } = parsed.data;
+
+  // neon-http has no transaction support — run sequentially instead.
   await db
     .update(courses)
-    .set({ ...parsed.data, planPdfUrl, updatedAt: new Date() })
+    .set({ ...courseFields, planPdfUrl, updatedAt: new Date() })
     .where(eq(courses.id, courseId));
+  await db.delete(courseTimeSlots).where(eq(courseTimeSlots.courseId, courseId));
+  await db.insert(courseTimeSlots).values(timeSlots.map((slot) => ({ courseId, ...slot })));
 
   revalidatePath("/");
   revalidatePath("/dashboard/courses");

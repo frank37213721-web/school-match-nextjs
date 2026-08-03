@@ -66,7 +66,7 @@ export async function applyForMatch(courseId: number): Promise<ApplyMatchResult>
   }
 
   const { successCount, failedRecipients } = await sendMatchApplicationEmails(
-    { title: course.title, dayOfWeek: course.dayOfWeek, startHour: course.startHour, endHour: course.endHour },
+    { title: course.title, timeSlots: course.timeSlots },
     hostSchool,
     applicant
   );
@@ -121,7 +121,7 @@ export async function approveMatch(matchId: number): Promise<MatchDecisionResult
   await db.update(matches).set({ status: "approved", updatedAt: new Date() }).where(eq(matches.id, matchId));
 
   await sendMatchApprovedEmails(
-    { title: course.title, dayOfWeek: course.dayOfWeek, startHour: course.startHour, endHour: course.endHour },
+    { title: course.title, timeSlots: course.timeSlots },
     hostSchool,
     applicantSchool
   );
@@ -152,7 +152,7 @@ export async function rejectMatch(matchId: number): Promise<MatchDecisionResult>
   await db.update(matches).set({ status: "rejected", updatedAt: new Date() }).where(eq(matches.id, matchId));
 
   await sendMatchRejectedEmail(
-    { title: course.title, dayOfWeek: course.dayOfWeek, startHour: course.startHour, endHour: course.endHour },
+    { title: course.title, timeSlots: course.timeSlots },
     hostSchool,
     applicantSchool.registrantEmail
   );

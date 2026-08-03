@@ -1,6 +1,7 @@
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { LobbyCourse } from "@/db/queries/courses";
+import { formatTimeSlots } from "@/lib/timeSlots";
 
 export function CourseRecordsTab({ courses }: { courses: LobbyCourse[] }) {
   return (
@@ -36,10 +37,7 @@ export function CourseRecordsTab({ courses }: { courses: LobbyCourse[] }) {
                 <td className="px-3 py-2">
                   {c.academicYear}・{c.semester}
                 </td>
-                <td className="px-3 py-2">
-                  {c.dayOfWeek} {String(c.startHour).padStart(2, "0")}:00~
-                  {String(c.endHour).padStart(2, "0")}:00
-                </td>
+                <td className="px-3 py-2">{formatTimeSlots(c.timeSlots)}</td>
                 <td className="px-3 py-2">
                   {c.approvedCount}/{c.maxSchools} 已配對　待審核 {c.pendingCount}
                 </td>

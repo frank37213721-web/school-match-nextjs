@@ -1,12 +1,42 @@
 import "server-only";
 import { eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { courses, matches, schools } from "@/db/schema";
+import { courses, courseTimeSlots, matches, schools } from "@/db/schema";
 import { computeCourseSeekingStatus } from "@/lib/matching";
+
+type TimeSlotRow = {
+  dayOfWeek: (typeof courseTimeSlots.$inferSelect)["dayOfWeek"];
+  startHour: number;
+  endHour: number;
+};
+
+async function getTimeSlotsByCourseIds(courseIds: number[]) {
+  if (courseIds.length === 0) return new Map<number, TimeSlotRow[]>();
+
+  const rows = await db
+    .select({
+      courseId: courseTimeSlots.courseId,
+      dayOfWeek: courseTimeSlots.dayOfWeek,
+      startHour: courseTimeSlots.startHour,
+      endHour: courseTimeSlots.endHour,
+    })
+    .from(courseTimeSlots)
+    .where(inArray(courseTimeSlots.courseId, courseIds));
+
+  const map = new Map<number, TimeSlotRow[]>();
+  for (const row of rows) {
+    const list = map.get(row.courseId) ?? [];
+    list.push({ dayOfWeek: row.dayOfWeek, startHour: row.startHour, endHour: row.endHour });
+    map.set(row.courseId, list);
+  }
+  return map;
+}
 
 export async function getCourseById(id: number) {
   const [row] = await db.select().from(courses).where(eq(courses.id, id)).limit(1);
-  return row ?? null;
+  if (!row) return null;
+  const slotsMap = await getTimeSlotsByCourseIds([id]);
+  return { ...row, timeSlots: slotsMap.get(id) ?? [] };
 }
 
 export type LobbyCourse = Awaited<ReturnType<typeof getLobbyCourses>>[number];
@@ -24,9 +54,6 @@ export async function getLobbyCourses() {
       academicYear: courses.academicYear,
       semester: courses.semester,
       credits: courses.credits,
-      dayOfWeek: courses.dayOfWeek,
-      startHour: courses.startHour,
-      endHour: courses.endHour,
       syllabus: courses.syllabus,
       planPdfUrl: courses.planPdfUrl,
       maxStudents: courses.maxStudents,
@@ -46,10 +73,13 @@ export async function getLobbyCourses() {
   if (rows.length === 0) return [];
 
   const courseIds = rows.map((r) => r.id);
-  const matchRows = await db
-    .select({ courseId: matches.courseId, status: matches.status })
-    .from(matches)
-    .where(inArray(matches.courseId, courseIds));
+  const [matchRows, slotsMap] = await Promise.all([
+    db
+      .select({ courseId: matches.courseId, status: matches.status })
+      .from(matches)
+      .where(inArray(matches.courseId, courseIds)),
+    getTimeSlotsByCourseIds(courseIds),
+  ]);
 
   const counts = new Map<number, { approved: number; pending: number }>();
   for (const m of matchRows) {
@@ -70,10 +100,13 @@ export async function getLobbyCourses() {
       closedToMatching: r.closedToMatching,
       applicationDeadline: r.applicationDeadline,
     });
-    return { ...r, approvedCount, pendingCount, isFull, isSeeking };
+    return { ...r, timeSlots: slotsMap.get(r.id) ?? [], approvedCount, pendingCount, isFull, isSeeking };
   });
 }
 
 export async function getCoursesForSchool(hostSchoolId: string) {
-  return db.select().from(courses).where(eq(courses.hostSchoolId, hostSchoolId));
+  const rows = await db.select().from(courses).where(eq(courses.hostSchoolId, hostSchoolId));
+  if (rows.length === 0) return [];
+  const slotsMap = await getTimeSlotsByCourseIds(rows.map((r) => r.id));
+  return rows.map((r) => ({ ...r, timeSlots: slotsMap.get(r.id) ?? [] }));
 }

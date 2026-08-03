@@ -18,6 +18,7 @@ import {
   type RegistryRow,
 } from "@/lib/excel";
 import { auth } from "@/lib/neon-auth";
+import { formatTimeSlots } from "@/lib/timeSlots";
 import { emailSchema, passwordSchema } from "@/lib/validation";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
@@ -29,14 +30,13 @@ export async function deleteSchoolCascade(schoolId: string): Promise<ActionResul
     await db.select({ id: courses.id }).from(courses).where(eq(courses.hostSchoolId, schoolId))
   ).map((c) => c.id);
 
-  await db.transaction(async (tx) => {
-    if (hostedCourseIds.length > 0) {
-      await tx.delete(matches).where(inArray(matches.courseId, hostedCourseIds));
-    }
-    await tx.delete(matches).where(eq(matches.partnerSchoolId, schoolId));
-    await tx.delete(courses).where(eq(courses.hostSchoolId, schoolId));
-    await tx.delete(schools).where(eq(schools.id, schoolId));
-  });
+  // neon-http has no transaction support — run sequentially instead.
+  if (hostedCourseIds.length > 0) {
+    await db.delete(matches).where(inArray(matches.courseId, hostedCourseIds));
+  }
+  await db.delete(matches).where(eq(matches.partnerSchoolId, schoolId));
+  await db.delete(courses).where(eq(courses.hostSchoolId, schoolId));
+  await db.delete(schools).where(eq(schools.id, schoolId));
 
   // schools.id IS the Neon Auth user id — without this, the login identity
   // (email/password) survives the school row being deleted, silently
@@ -257,29 +257,28 @@ export async function confirmRegistryImport(
   let updated = 0;
   let deleted = 0;
 
-  await db.transaction(async (tx) => {
-    for (const row of rows) {
-      const current = existingByName.get(row.name);
-      if (!current) {
-        await tx.insert(schoolRegistry).values(row);
-        added += 1;
-      } else if (current.code !== row.code || current.district !== row.district) {
-        await tx
-          .update(schoolRegistry)
-          .set({ code: row.code, district: row.district })
-          .where(eq(schoolRegistry.id, current.id));
-        updated += 1;
-      }
+  // neon-http has no transaction support — run sequentially instead.
+  for (const row of rows) {
+    const current = existingByName.get(row.name);
+    if (!current) {
+      await db.insert(schoolRegistry).values(row);
+      added += 1;
+    } else if (current.code !== row.code || current.district !== row.district) {
+      await db
+        .update(schoolRegistry)
+        .set({ code: row.code, district: row.district })
+        .where(eq(schoolRegistry.id, current.id));
+      updated += 1;
     }
+  }
 
-    if (deleteMissing) {
-      const missingIds = existing.filter((r) => !uploadedNames.has(r.name)).map((r) => r.id);
-      if (missingIds.length > 0) {
-        await tx.delete(schoolRegistry).where(inArray(schoolRegistry.id, missingIds));
-        deleted = missingIds.length;
-      }
+  if (deleteMissing) {
+    const missingIds = existing.filter((r) => !uploadedNames.has(r.name)).map((r) => r.id);
+    if (missingIds.length > 0) {
+      await db.delete(schoolRegistry).where(inArray(schoolRegistry.id, missingIds));
+      deleted = missingIds.length;
     }
-  });
+  }
 
   revalidatePath("/admin");
   return { ok: true, added, updated, deleted };
@@ -301,9 +300,7 @@ export async function exportCoursesBuffer(): Promise<Buffer> {
       courseType: r.courseType,
       academicYear: r.academicYear,
       semester: r.semester,
-      dayOfWeek: r.dayOfWeek,
-      startHour: r.startHour,
-      endHour: r.endHour,
+      timeSlots: formatTimeSlots(r.timeSlots),
       maxSchools: r.maxSchools,
       approvedCount: r.approvedCount,
       pendingCount: r.pendingCount,

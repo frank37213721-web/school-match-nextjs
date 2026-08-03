@@ -1,5 +1,6 @@
 import "server-only";
 import { Resend } from "resend";
+import { formatTimeSlots, type TimeSlot } from "@/lib/timeSlots";
 
 let resendClient: Resend | null = null;
 
@@ -37,9 +38,7 @@ function wrapEmail(bodyHtml: string): string {
 
 type CourseInfo = {
   title: string;
-  dayOfWeek: string;
-  startHour: number;
-  endHour: number;
+  timeSlots: TimeSlot[];
 };
 
 type SchoolContact = {
@@ -72,9 +71,7 @@ export async function sendMatchApplicationEmails(
   hostSchool: SchoolContact,
   applicantSchool: SchoolContact
 ): Promise<{ successCount: number; failedRecipients: string[] }> {
-  const timeStr = `${course.dayOfWeek} ${String(course.startHour).padStart(2, "0")}:00 ~ ${String(
-    course.endHour
-  ).padStart(2, "0")}:00`;
+  const timeStr = formatTimeSlots(course.timeSlots);
 
   const hostSubject = `【跨校課程匯流平台】配對申請通知：${applicantSchool.name} 申請您的課程「${course.title}」`;
   const hostBaseBody = `

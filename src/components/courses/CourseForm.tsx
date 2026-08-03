@@ -1,7 +1,17 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { CalendarClock, CalendarX2, FileText, ListChecks, Save, School, Users } from "lucide-react";
+import {
+  CalendarClock,
+  CalendarX2,
+  FileText,
+  ListChecks,
+  Plus,
+  Save,
+  School,
+  Trash2,
+  Users,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,15 +28,19 @@ const SEMESTERS = ["第一學期", "第二學期", "全學年"] as const;
 const DAYS = ["週一", "週二", "週三", "週四", "週五", "週六"] as const;
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
+export type CourseTimeSlotValue = {
+  dayOfWeek: (typeof DAYS)[number];
+  startHour: number;
+  endHour: number;
+};
+
 export type CourseFormValues = {
   title: string;
   courseType: (typeof COURSE_TYPES)[number];
   academicYear: string;
   semester: (typeof SEMESTERS)[number];
   credits: number | null;
-  dayOfWeek: (typeof DAYS)[number];
-  startHour: number;
-  endHour: number;
+  timeSlots: CourseTimeSlotValue[];
   syllabus: string | null;
   planPdfUrl: string | null;
   maxStudents: number;
@@ -71,6 +85,25 @@ export function CourseForm({
   const [applicationDeadline, setApplicationDeadline] = useState(initial?.applicationDeadline ?? "");
   const [partnerNotesError, setPartnerNotesError] = useState<string | null>(null);
 
+  const [timeSlots, setTimeSlots] = useState<CourseTimeSlotValue[]>(
+    initial?.timeSlots && initial.timeSlots.length > 0
+      ? initial.timeSlots
+      : [{ dayOfWeek: DAYS[0], startHour: 8, endHour: 10 }]
+  );
+  const [timeSlotsError, setTimeSlotsError] = useState<string | null>(null);
+
+  function addTimeSlot() {
+    setTimeSlots((prev) => [...prev, { dayOfWeek: DAYS[0], startHour: 8, endHour: 10 }]);
+  }
+
+  function removeTimeSlot(index: number) {
+    setTimeSlots((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function updateTimeSlot(index: number, patch: Partial<CourseTimeSlotValue>) {
+    setTimeSlots((prev) => prev.map((slot, i) => (i === index ? { ...slot, ...patch } : slot)));
+  }
+
   function handleMaxSchoolsChange(value: number) {
     const next = Math.max(0, value);
     setMaxSchools(next);
@@ -85,6 +118,17 @@ export function CourseForm({
     e.preventDefault();
     setError(null);
     setPartnerNotesError(null);
+    setTimeSlotsError(null);
+
+    if (timeSlots.length === 0) {
+      setTimeSlotsError("請至少新增一個上課時段。");
+      return;
+    }
+    const invalidSlot = timeSlots.find((slot) => slot.endHour <= slot.startHour);
+    if (invalidSlot) {
+      setTimeSlotsError("每個時段的結束時間都必須晚於開始時間。");
+      return;
+    }
 
     if (closedToMatching && partnerNotes.every((n) => !n.trim())) {
       setPartnerNotesError("勾選「不想再增加合作學校」時，請至少填寫一間已找到的合作學校。");
@@ -94,6 +138,7 @@ export function CourseForm({
     const formData = new FormData(e.currentTarget);
     formData.set("courseType", courseType);
     if (isFlexible) formData.set("credits", "0");
+    formData.set("timeSlots", JSON.stringify(timeSlots));
     formData.delete("partnerNotes");
     partnerNotes.forEach((note) => formData.append("partnerNotes", note));
     formData.set("closedToMatching", String(closedToMatching));
@@ -183,53 +228,83 @@ export function CourseForm({
           <CalendarClock className="size-4 text-muted-foreground" />
           開課時間
         </p>
-        <div className="grid grid-cols-3 gap-3">
-          <div>
-            <Label className="mb-2 block">星期</Label>
-            <Select name="dayOfWeek" defaultValue={initial?.dayOfWeek ?? DAYS[0]}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {DAYS.map((d) => (
-                  <SelectItem key={d} value={d}>
-                    {d}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="mb-2 block">開始時間（時）</Label>
-            <Select name="startHour" defaultValue={String(initial?.startHour ?? 8)}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {HOURS.map((h) => (
-                  <SelectItem key={h} value={String(h)}>
-                    {String(h).padStart(2, "0")}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="mb-2 block">結束時間（時）</Label>
-            <Select name="endHour" defaultValue={String(initial?.endHour ?? 10)}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {HOURS.map((h) => (
-                  <SelectItem key={h} value={String(h)}>
-                    {String(h).padStart(2, "0")}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="flex flex-col gap-3">
+          {timeSlots.map((slot, index) => (
+            <div key={index} className="flex items-end gap-3">
+              <div className="grid flex-1 grid-cols-3 gap-3">
+                <div>
+                  {index === 0 && <Label className="mb-2 block">星期</Label>}
+                  <Select
+                    value={slot.dayOfWeek}
+                    onValueChange={(v) => v && updateTimeSlot(index, { dayOfWeek: v as (typeof DAYS)[number] })}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DAYS.map((d) => (
+                        <SelectItem key={d} value={d}>
+                          {d}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  {index === 0 && <Label className="mb-2 block">開始時間（時）</Label>}
+                  <Select
+                    value={String(slot.startHour)}
+                    onValueChange={(v) => v && updateTimeSlot(index, { startHour: Number(v) })}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {HOURS.map((h) => (
+                        <SelectItem key={h} value={String(h)}>
+                          {String(h).padStart(2, "0")}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  {index === 0 && <Label className="mb-2 block">結束時間（時）</Label>}
+                  <Select
+                    value={String(slot.endHour)}
+                    onValueChange={(v) => v && updateTimeSlot(index, { endHour: Number(v) })}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {HOURS.map((h) => (
+                        <SelectItem key={h} value={String(h)}>
+                          {String(h).padStart(2, "0")}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                size="icon"
+                disabled={timeSlots.length <= 1}
+                onClick={() => removeTimeSlot(index)}
+                aria-label="移除此時段"
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            </div>
+          ))}
         </div>
+        <Button type="button" variant="secondary" size="sm" className="mt-3" onClick={addTimeSlot}>
+          <Plus className="size-4" />
+          新增時段
+        </Button>
+        {timeSlotsError && <p className="mt-2 text-sm text-destructive">{timeSlotsError}</p>}
       </div>
 
       <div className="grid grid-cols-2 gap-4">

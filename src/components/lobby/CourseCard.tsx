@@ -23,11 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ApplyMatchDialog } from "./ApplyMatchDialog";
 import type { LobbyCourse } from "@/db/queries/courses";
-
-function formatTime(dayOfWeek: string, startHour: number, endHour: number) {
-  const pad = (h: number) => String(h).padStart(2, "0");
-  return `${dayOfWeek} ${pad(startHour)}:00 ~ ${pad(endHour)}:00`;
-}
+import { formatTimeSlots } from "@/lib/timeSlots";
 
 export function CourseCard({
   course,
@@ -90,7 +86,7 @@ export function CourseCard({
           </p>
           <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
             <Clock className="size-3.5" />
-            {formatTime(course.dayOfWeek, course.startHour, course.endHour)}　已配對 {course.approvedCount}{" "}
+            {formatTimeSlots(course.timeSlots)}　已配對 {course.approvedCount}{" "}
             所　待審 {course.pendingCount} 所
           </p>
         </div>
@@ -147,7 +143,7 @@ export function CourseCard({
               </p>
               <p className="flex items-center gap-1.5">
                 <CalendarClock className="size-3.5 text-muted-foreground" />
-                開課時間：{formatTime(course.dayOfWeek, course.startHour, course.endHour)}
+                開課時間：{formatTimeSlots(course.timeSlots)}
               </p>
               <p className="flex items-center gap-1.5">
                 <Users className="size-3.5 text-muted-foreground" />
