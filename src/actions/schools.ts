@@ -1,7 +1,7 @@
 "use server";
 
 import { randomBytes } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { schools } from "@/db/schema";
@@ -250,16 +250,26 @@ export async function changeSchoolPassword(
 
 // Password reset runs entirely through our own token + Resend email instead
 // of Neon Auth's built-in reset-email delivery (unreliable on its Shared and
-// Custom SMTP providers as of this app's Beta version). The password itself
-// is still stored and validated by Neon Auth — we only bypass the emailing
-// step, setting the new password via the admin API once our own token has
-// been verified.
+// Custom SMTP providers as of this app's Beta version). We only bypass the
+// emailing step — the actual password update goes through Neon Auth's own
+// unauthenticated /reset-password endpoint (auth.resetPassword), not the
+// admin API: auth.admin.setUserPassword requires an authenticated admin
+// session (it 401s — see ADMIN_ERROR_CODES-backed adminMiddleware), which
+// doesn't exist in a "forgot password" flow. To let auth.resetPassword
+// accept our own token, we also register it in Neon Auth's own internal
+// verification table under the same "reset-password:<token>" identifier
+// it uses internally, mirroring what its own request-password-reset
+// endpoint would have written.
 export async function requestSchoolPasswordReset(phone: string): Promise<ActionResult> {
   const school = await getSchoolByPhone(phone.trim());
   if (school) {
     const token = randomBytes(32).toString("hex");
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
     await createPasswordResetToken(school.id, token, expiresAt);
+    await db.execute(sql`
+      INSERT INTO neon_auth.verification (id, identifier, value, "expiresAt", "createdAt", "updatedAt")
+      VALUES (gen_random_uuid(), ${`reset-password:${token}`}, ${school.id}, ${expiresAt}, now(), now())
+    `);
 
     const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}`;
     await sendPasswordResetEmail(school.registrantEmail, resetUrl);
@@ -287,10 +297,13 @@ export async function resetSchoolPassword(
     return { ok: false, error: "重設連結無效或已過期，請重新申請。" };
   }
 
-  await auth.admin.setUserPassword({
-    userId: tokenRow.schoolId,
+  const { error } = await auth.resetPassword({
     newPassword: parsed.data.newPassword,
+    token: parsed.data.token,
   });
+  if (error) {
+    return { ok: false, error: "重設連結無效或已過期，請重新申請。" };
+  }
   await markPasswordResetTokenUsed(tokenRow.id);
 
   return { ok: true };
