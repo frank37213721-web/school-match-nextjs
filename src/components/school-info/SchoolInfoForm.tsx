@@ -20,7 +20,7 @@ export function SchoolInfoForm({ school }: { school: CurrentSchool }) {
   const [name, setName] = useState(school.name);
   const [district, setDistrict] = useState(school.district ?? "");
   const [registrantName, setRegistrantName] = useState(school.registrantName);
-  const [registrantExtension, setRegistrantExtension] = useState("");
+  const [registrantExtension, setRegistrantExtension] = useState(school.registrantExtension ?? "");
   const [academicDirectorEmail, setAcademicDirectorEmail] = useState(
     school.academicDirectorEmail ?? ""
   );
