@@ -23,7 +23,9 @@ import { emailSchema, passwordSchema } from "@/lib/validation";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
-export async function deleteSchoolCascade(schoolId: string): Promise<ActionResult> {
+export type DeleteSchoolResult = { ok: true; warning?: string } | { ok: false; error: string };
+
+export async function deleteSchoolCascade(schoolId: string): Promise<DeleteSchoolResult> {
   await requireRole(["SiteAdmin"]);
 
   const hostedCourseIds = (
@@ -41,11 +43,19 @@ export async function deleteSchoolCascade(schoolId: string): Promise<ActionResul
   // schools.id IS the Neon Auth user id — without this, the login identity
   // (email/password) survives the school row being deleted, silently
   // blocking that email from ever registering again ("already exists").
-  await auth.admin.removeUser({ userId: schoolId });
+  const { error } = await auth.admin.removeUser({ userId: schoolId });
+  if (error) {
+    console.error("[deleteSchoolCascade] failed to remove Neon Auth identity:", schoolId, error);
+  }
 
   revalidatePath("/admin");
   revalidatePath("/");
-  return { ok: true };
+  return {
+    ok: true,
+    warning: error
+      ? "學校資料已刪除，但登入帳號未能完全移除，如果該校無法用同一組 Email 重新註冊，請聯絡工程師處理。"
+      : undefined,
+  };
 }
 
 const createAdminSchema = z.object({

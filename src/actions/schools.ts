@@ -20,6 +20,17 @@ import { emailSchema, passwordSchema } from "@/lib/validation";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
+// schools.district is a strict enum, but school_registry.district is free
+// text (e.g. "高雄市", seeded from various sources) — never assign it
+// directly without checking it's actually one of the enum's values, or the
+// insert throws and leaves an orphaned Neon Auth identity behind (the
+// identity is created before this insert and can't be rolled back without
+// an admin session, which doesn't exist during self-registration).
+const VALID_SCHOOL_DISTRICTS = new Set(["北一區", "北二區", "北三區", "中區", "南區", "其他"]);
+function sanitizeDistrict(value: string | null | undefined): string | null {
+  return value && VALID_SCHOOL_DISTRICTS.has(value) ? value : null;
+}
+
 const registerSchema = z.object({
   schoolCode: z.string().min(1, "請輸入學校代碼"),
   district: z
@@ -112,34 +123,44 @@ export async function registerSchool(input: {
     return { ok: false, error: "帳號已建立，但學校資料儲存失敗，請聯絡管理員。" };
   }
 
-  await db
-    .insert(schools)
-    .values({
-      id: userId,
-      name: registryEntry.name,
-      district: (data.district || registryEntry.district || null) as
-        | (typeof schools.$inferInsert)["district"]
-        | undefined,
-      phone: data.phone,
-      registrantName: data.registrantName,
-      registrantExtension: data.registrantExtension || null,
-      registrantEmail: data.registrantEmail,
-      academicDirectorEmail: data.academicDirectorEmail,
-      principalEmail: data.principalEmail,
-      identity: "學校承辦人",
-      role: "School",
-      isHost: true,
-      isPartner: true,
-    })
-    .onConflictDoUpdate({
-      target: schools.id,
-      set: {
+  try {
+    await db
+      .insert(schools)
+      .values({
+        id: userId,
         name: registryEntry.name,
+        district: (data.district || sanitizeDistrict(registryEntry.district)) as
+          | (typeof schools.$inferInsert)["district"]
+          | undefined,
         phone: data.phone,
         registrantName: data.registrantName,
+        registrantExtension: data.registrantExtension || null,
         registrantEmail: data.registrantEmail,
-      },
-    });
+        academicDirectorEmail: data.academicDirectorEmail,
+        principalEmail: data.principalEmail,
+        identity: "學校承辦人",
+        role: "School",
+        isHost: true,
+        isPartner: true,
+      })
+      .onConflictDoUpdate({
+        target: schools.id,
+        set: {
+          name: registryEntry.name,
+          phone: data.phone,
+          registrantName: data.registrantName,
+          registrantEmail: data.registrantEmail,
+        },
+      });
+  } catch (err) {
+    // The Neon Auth login identity was already created above — if saving
+    // the school row fails (bad district value, DB constraint, etc.), roll
+    // it back so the email doesn't end up permanently orphaned and blocked
+    // from ever registering again.
+    await auth.admin.removeUser({ userId }).catch(() => {});
+    console.error("[registerSchool] rolled back orphaned auth identity after insert failure:", err);
+    return { ok: false, error: "註冊過程發生錯誤，請稍後再試一次。" };
+  }
 
   return { ok: true };
 }

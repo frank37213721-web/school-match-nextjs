@@ -117,7 +117,11 @@ function SchoolRowItem({ school }: { school: SchoolRow }) {
         toast.error(result.error, "刪除失敗");
         return;
       }
-      toast.success(`「${school.name}」已刪除。`, "已刪除");
+      if (result.warning) {
+        toast.error(result.warning, "刪除完成，但有警告");
+      } else {
+        toast.success(`「${school.name}」已刪除。`, "已刪除");
+      }
       router.refresh();
     });
   }
