@@ -6,7 +6,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { schools } from "@/db/schema";
 import { getRegistryByCode, searchRegistryByName } from "@/db/queries/registry";
-import { getSchoolByName, getSchoolByPhone } from "@/db/queries/schools";
+import { getSchoolByName, getSchoolByPhone, getSchoolByRegistrantEmail } from "@/db/queries/schools";
 import {
   createPasswordResetToken,
   getValidPasswordResetToken,
@@ -223,17 +223,47 @@ export async function updateSchoolProfile(input: {
   }
   const data = parsed.data;
 
-  await db
-    .update(schools)
-    .set({
-      name: data.name,
-      district: (data.district || null) as (typeof schools.$inferInsert)["district"] | undefined,
-      registrantName: data.registrantName,
-      registrantExtension: data.registrantExtension || null,
-      academicDirectorEmail: data.academicDirectorEmail || null,
-      principalEmail: data.principalEmail || null,
-    })
-    .where(eq(schools.id, school.id));
+  // registrantEmail is also the school's actual Neon Auth login email (the
+  // phone number typed at login is just resolved to this email under the
+  // hood) — if it changes, both places must change together, or login by
+  // phone will start failing silently. Neon Auth doesn't expose a
+  // self-service email-change endpoint we can rely on here (it needs a
+  // plugin-level config we don't control, and would otherwise require an
+  // email-verification round trip), so we update its own user table
+  // directly instead.
+  const emailChanged = data.registrantEmail && data.registrantEmail !== school.registrantEmail;
+  if (emailChanged) {
+    const existing = await getSchoolByRegistrantEmail(data.registrantEmail!);
+    if (existing && existing.id !== school.id) {
+      return { ok: false, error: "此 Email 已被其他學校使用。" };
+    }
+    await db.execute(sql`UPDATE neon_auth."user" SET email = ${data.registrantEmail} WHERE id = ${school.id}`);
+  }
+
+  try {
+    await db
+      .update(schools)
+      .set({
+        name: data.name,
+        district: (data.district || null) as (typeof schools.$inferInsert)["district"] | undefined,
+        registrantName: data.registrantName,
+        registrantExtension: data.registrantExtension || null,
+        registrantEmail: data.registrantEmail,
+        academicDirectorEmail: data.academicDirectorEmail || null,
+        principalEmail: data.principalEmail || null,
+      })
+      .where(eq(schools.id, school.id));
+  } catch (err) {
+    if (emailChanged) {
+      // Keep the login email and the displayed email in sync — if this
+      // insert fails, undo the Neon Auth email change too.
+      await db
+        .execute(sql`UPDATE neon_auth."user" SET email = ${school.registrantEmail} WHERE id = ${school.id}`)
+        .catch(() => {});
+    }
+    console.error("[updateSchoolProfile] failed to save profile:", err);
+    return { ok: false, error: "更新失敗，請稍後再試一次。" };
+  }
 
   return { ok: true };
 }

@@ -18,6 +18,11 @@ export async function getSchoolByName(name: string) {
   return row ?? null;
 }
 
+export async function getSchoolByRegistrantEmail(email: string) {
+  const [row] = await db.select().from(schools).where(eq(schools.registrantEmail, email)).limit(1);
+  return row ?? null;
+}
+
 export async function getAllSchools() {
   return db.select().from(schools).where(eq(schools.role, "School")).orderBy(schools.district, schools.name);
 }

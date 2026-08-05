@@ -21,6 +21,7 @@ export function SchoolInfoForm({ school }: { school: CurrentSchool }) {
   const [district, setDistrict] = useState(school.district ?? "");
   const [registrantName, setRegistrantName] = useState(school.registrantName);
   const [registrantExtension, setRegistrantExtension] = useState(school.registrantExtension ?? "");
+  const [registrantEmail, setRegistrantEmail] = useState(school.registrantEmail);
   const [academicDirectorEmail, setAcademicDirectorEmail] = useState(
     school.academicDirectorEmail ?? ""
   );
@@ -41,6 +42,7 @@ export function SchoolInfoForm({ school }: { school: CurrentSchool }) {
         district,
         registrantName,
         registrantExtension,
+        registrantEmail,
         academicDirectorEmail,
         principalEmail,
       });
@@ -116,8 +118,16 @@ export function SchoolInfoForm({ school }: { school: CurrentSchool }) {
           </div>
         </div>
         <div>
-          <Label className="mb-2 block">承辦人 Email（登入帳號，無法修改）</Label>
-          <Input value={school.registrantEmail} disabled />
+          <Label className="mb-2 block">承辦人 Email</Label>
+          <Input
+            type="email"
+            value={registrantEmail}
+            onChange={(e) => setRegistrantEmail(e.target.value)}
+            required
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            登入請使用學校電話，此 Email 僅作為聯絡與通知用途。
+          </p>
         </div>
         <div>
           <Label className="mb-2 block">承辦處室主任 Email</Label>
